@@ -6,7 +6,36 @@ Github Watcher is a daemon that monitors the files, line ranges, and directories
 Installation
 ------------
 
-I don't really feel like packaging this, so just pull the source and run the file directly. You'll need to create a github access token with `repo` and `user` permissions. Add that token to a file at `~/.github`. We'll need it to authenticate with your repos.
+You'll need to create a github access token with `repo` and `user` permissions. Add that token to a file at `~/.github`. We'll need it to authenticate with your repos.
+
+Next you can just pull this down like
+
+```bash
+git pull git@github.com:akellehe/github-watcher.git ./github-watcher
+```
+
+and install it like
+
+```bash
+python setup.py install
+```
+
+Now you have an executable probably located at `/usr/local/bin/github-watcher`. Wherever it is it's on your path now and you can run
+
+```
+>> github-watcher
+```
+
+from anywhere you like. Daemonize it how you see fit... I have mine set up in my dotfile `~/.bash_profile` with a simple guard...
+
+```bash
+if [[ -z "$(pgrep -f github-watcher)" ]]; then
+    github-watcher 2>1 >> /dev/null &
+fi
+```
+
+but you can probably do something more clever like using daemontools or init.d or whatever your preferred service manager is. If you do one of those implementations [let me know!](mailto:keats.kelleher@gmail.com).
+
 
 Configuration
 -------------
