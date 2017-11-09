@@ -11,7 +11,7 @@ I don't really feel like packaging this, so just pull the source and run the fil
 Configuration
 -------------
 
-Github Watcher expects a `.yml` formatted config file at `~/.watch-github.yml`. The file should be of the format:
+Github Watcher expects a `.yml` formatted config file at `~/.github-watcher.yml`. The file should be of the format:
 
 ```yaml
 ---
