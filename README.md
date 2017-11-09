@@ -49,7 +49,7 @@ akellehe:
 
 If you need to use this on github enterprise you'll have to specify the API base url yourself. For example...
 
-```
+```yaml
 ---
 
 github_api_base_url: https://[your site name]/api/v3
