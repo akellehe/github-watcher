@@ -3,39 +3,6 @@ Github Watcher
 
 Github Watcher is a daemon that monitors the files, line ranges, and directories in a repository you configure it to watch. When there is a pull request sent to that repository making a change to something you're watching; you'll get an OSX notification. There's also a really annoying voice that tells you what was found.
 
-Installation
-------------
-
-You'll need to create a github access token with `repo` and `user` permissions. Add that token to a file at `~/.github`. We'll need it to authenticate with your repos.
-
-Next you can just pull this down like
-
-```bash
-git pull git@github.com:akellehe/github-watcher.git ./github-watcher
-```
-
-and install it like
-
-```bash
-python setup.py install
-```
-
-Now you have an executable probably located at `/usr/local/bin/github-watcher`. Wherever it is it's on your path now and you can run
-
-```
->> github-watcher
-```
-
-from anywhere you like. Daemonize it how you see fit... I have mine set up in my dotfile `~/.bash_profile` with a simple guard...
-
-```bash
-if [[ -z "$(pgrep -f github-watcher)" ]]; then
-    github-watcher 2>1 >> /dev/null &
-fi
-```
-
-but you can probably do something more clever like using daemontools or init.d or whatever your preferred service manager is. If you do one of those implementations [let me know!](mailto:keats.kelleher@gmail.com).
-
 
 Configuration
 -------------
@@ -88,17 +55,52 @@ akellehe:
 
 ```
 
+
+Installation
+------------
+
+You'll need to create a github access token with `repo` and `user` permissions. Add that token to a file at `~/.github`. We'll need it to authenticate with your repos.
+
+Next you can install via pip
+
+```bash
+pip install github_watcher
+```
+
+Or you can just pull this down like
+
+```bash
+git pull git@github.com:akellehe/github-watcher.git ./github-watcher
+```
+
+and install it like
+
+```bash
+python setup.py install
+```
+
+
 Execution
 ---------
 
-To run this after it's configured you can just do:
+Now you have an executable probably located at `/usr/local/bin/github-watcher`. Wherever it is it's on your path now and you can run
 
-```bash
-python watcher.py
+```
+>> github-watcher
 ```
 
-If you want to run it in the background you can do:
+from anywhere you like. You can run it in the background by adding an `&`.
+
+```
+>> github-watcher &
+```
+
+Daemonize it how you see fit... I have mine set up in my dotfile `~/.bash_profile` with a simple guard...
 
 ```bash
-python watcher.py &
+if [[ -z "$(pgrep -f github-watcher)" ]]; then
+    github-watcher 2>1 >> /dev/null &
+fi
 ```
+
+but you can probably do something more clever like using daemontools or init.d or whatever your preferred service manager is. If you do one of those implementations [let me know!](mailto:keats.kelleher@gmail.com).
