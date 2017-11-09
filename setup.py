@@ -7,12 +7,13 @@ except ImportError:
 
 
 setup(name='github_watcher',
-        version='1.0',
+        version='1.01',
         description='Monitors files/directories in github for changes',
         author='Andrew Kelleher',
         author_email='keats.kelleher@gmail.com',
         packages=['github_watcher'],
         scripts=['github_watcher/github-watcher'],
+        url='https://github.com/akellehe/github-watcher',
         install_requires=[
            'unidiff==0.5.4',
            'requests==2.18.4',
