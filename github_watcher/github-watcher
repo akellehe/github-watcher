@@ -41,7 +41,7 @@ try:
         CONFIG = yaml.load(config.read())
         github_api_base_url = CONFIG.pop('github_api_base_url', 'https://api.github.com')
 except IOError as e:
-    print "You must include a configuration of what to watch at ~/.watch-github.yml"
+    print "You must include a configuration of what to watch at ~/.github-watcher.yml"
     sys.exit(1)
 
 headers = {'Authorization': 'token {}'.format(oauth_token)}
