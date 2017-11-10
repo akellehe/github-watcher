@@ -7,7 +7,7 @@ except ImportError:
 
 
 setup(name='github_watcher',
-        version='1.01',
+        version='1.02',
         description='Monitors files/directories in github for changes',
         author='Andrew Kelleher',
         author_email='keats.kelleher@gmail.com',
