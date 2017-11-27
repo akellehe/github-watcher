@@ -131,7 +131,7 @@ def are_watched_lines(watchpaths, filepath, start, end):
     return False
 
 
-def alert_if_watched_changes(user, repo, patched_file, link, source_or_target='source'):
+def alert_if_watched_changes(watchpaths, user, repo, patched_file, link, source_or_target='source'):
     filepath = getattr(patched_file, source_or_target + '_file')
     if filepath.startswith('a/') or filepath.startswith('b/'):
         filepath = filepath[2:]
@@ -173,7 +173,7 @@ def already_alerted(pr_link):
     return False
 
 
-if __name__ == '__main__':
+def main():
     while True:
         for user, repo_watchpaths in CONFIG.items():
             for repo, watchpaths in repo_watchpaths.items():
@@ -185,7 +185,7 @@ if __name__ == '__main__':
                     except Noop:
                         continue
                     for patched_file in patchset:
-                        if alert_if_watched_changes(user, repo, patched_file, link, 'source'):
+                        if alert_if_watched_changes(watchpaths, user, repo, patched_file, link, 'source'):
                             continue
-                        alert_if_watched_changes(user, repo, patched_file, link, 'target')
+                        alert_if_watched_changes(watchpaths, user, repo, patched_file, link, 'target')
         time.sleep(60 * 10) # 10 minutes
