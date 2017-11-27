@@ -7,7 +7,11 @@ except ImportError:
 
 
 setup(name='github_watcher',
+<<<<<<< HEAD
         version='1.04',
+=======
+        version='2.0',
+>>>>>>> c4a8df8... Added interface, almost complete
         description='Monitors files/directories on github and alerts you when someone submits a PR with changes',
         author='Andrew Kelleher',
         author_email='keats.kelleher@gmail.com',

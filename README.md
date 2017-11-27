@@ -7,6 +7,10 @@ Github Watcher is a daemon that monitors the files, line ranges, and directories
 Configuration
 -------------
 
+You can configure `github-watcher` after you install it by running `github-watcher config`. Just follow the prompts and your config will be written to `~/.github-watcher.yml`. If you mess up it's ok, just edit the file manually after you exit or re-run `github-watcher config`.
+
+You can also use this tool to edit existing configs, but only to add to them. If you want to delete something you have to do it manually.
+
 Github Watcher expects a `.yml` formatted config file at `~/.github-watcher.yml`. The file should be of the format:
 
 ```yaml
@@ -86,20 +90,20 @@ Execution
 Now you have an executable probably located at `/usr/local/bin/github-watcher`. Wherever it is it's on your path now and you can run
 
 ```
->> github-watcher
+>> github-watcher run
 ```
 
 from anywhere you like. You can run it in the background by adding an `&`.
 
 ```
->> github-watcher &
+>> github-watcher run &
 ```
 
 Daemonize it how you see fit... I have mine set up in my dotfile `~/.bash_profile` with a simple guard...
 
 ```bash
 if [[ -z "$(pgrep -f github-watcher)" ]]; then
-    github-watcher 2>1 >> /dev/null &
+    github-watcher run 2> > /dev/null &
 fi
 ```
 
