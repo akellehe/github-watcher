@@ -2,38 +2,37 @@
 import sys
 import time
 import logging
+import argparse
 
 import github_watcher
 import github_watcher.run
 import github_watcher.config
 
 
-logger = logging.getLogger()
-logger.setLevel(logging.ERROR)
-handler = logging.StreamHandler(stream=sys.stdout)
-handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - L%(lineno)d %(message)s'))
-logger.addHandler(handler)
-
-help = """
-Available commands are:
-
-  github-watcher [run|config|help]
+action_help = '''
+  github-watcher [run|config] [options]
 
     - run     Runs the daemon. Watches files and alerts when there is
               a pull request of interest.
     - config  Convenience tool to help you configure the watcher. You
               can add line ranges or directories, update the API url,
               or add new files to watch.
-    - help    Displays this message and exits.
-"""
+'''
 
-if len(sys.argv) != 2 or sys.argv[1] not in ('run', 'config'):
-  print help
-  sys.exit(1)
+parser = argparse.ArgumentParser(description='')
+parser.add_argument('action', default='run', help=action_help)
+parser.add_argument('--verbose', dest='verbose', action='store_true', default=False)
+args = parser.parse_args()
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG if args.verbose else logging.ERROR)
+handler = logging.StreamHandler(stream=sys.stdout)
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - L%(lineno)d %(message)s'))
+logger.addHandler(handler)
 
 THROTTLE_THRESHOLD = 600 # seconds
 backoff = 1
-if sys.argv[1] == "run":
+if args.action == 'run':
     while True:
         try:
             last_invokation = time.time()
@@ -43,11 +42,14 @@ if sys.argv[1] == "run":
         except Exception as e:
             if time.time() - last_invokation > THROTTLE_THRESHOLD:
                 logger.exception(e)
-                logger.error("Backing off {} seconds".format(backoff))
+                logger.error('Backing off {} seconds'.format(backoff))
                 backoff *= 2
             else:
                 backoff = 1
             time.sleep(backoff)
             continue
-else:
+elif args.action == 'config':
     github_watcher.config.main()
+else:
+    parser.print_help()
+    sys.exit(1)

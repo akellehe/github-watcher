@@ -47,7 +47,7 @@ gh = Github(login_or_token=oauth_token, base_url=github_api_base_url)
 
 def get_open_pull_requests(user, repo):
     repo_name = '{}/{}'.format(user, repo)
-    logger.info("Repo name {}".format(repo_name))
+    logger.info("getting open pull requests for repo name={}".format(repo_name))
     prs = gh.get_repo(repo_name).get_pulls(state='open')
     for pr in prs:
         yield pr
@@ -111,6 +111,7 @@ def alert(user, repo, file, range, pr_link):
     msg = 'Found a PR effecting {file} {range}'.format(
 	file=file,
 	range=str(range))
+    logger.info(msg)
     subprocess.call('say ' + msg, shell=True)
     Notifier.notify(
 	msg,
@@ -148,6 +149,7 @@ def alert_if_watched_changes(watchpaths, user, repo, patched_file, link, source_
             end = start + offset
             if are_watched_lines(watchpaths, filepath, start, end):
                 if not already_alerted(link):
+
                     alert(user, repo, watched_file, (start, end), link)
                     mark_as_alerted(link)
                 return True
@@ -155,6 +157,7 @@ def alert_if_watched_changes(watchpaths, user, repo, patched_file, link, source_
 
 
 def mark_as_alerted(pr_link):
+    logger.info("Marking as alerted.")
     with open(WATCHER_ALERT_LOG, 'a+') as fp:
         fp.write(pr_link + '\n')
 
@@ -172,7 +175,7 @@ def already_alerted(pr_link):
 
 
 def main():
-    logger.info("Main running")
+    logger.info("main() running...")
     while True:
         for user, repo_watchpaths in CONFIG.items():
             for repo, watchpaths in repo_watchpaths.items():
@@ -180,11 +183,18 @@ def main():
                 for open_pr in open_prs:
                     link = open_pr.html_url
                     try:
+                        logger.info("Extracting diff and creating patchset. This is a hack.")
                         patchset = unidiff.PatchSet.from_string(get_diff(open_pr))
                     except Noop:
+                        logger.info("Got a noop diff")
                         continue
+                    logger.info("Checking each file...")
                     for patched_file in patchset:
+                        logger.info("Checking {}/{}/{}".format(user, repo, patched_file.source_file))
                         if alert_if_watched_changes(watchpaths, user, repo, patched_file, link, 'source'):
                             continue
+                        logger.info("Checking {}/{}/{}".format(user, repo, patched_file.target_file))
                         alert_if_watched_changes(watchpaths, user, repo, patched_file, link, 'target')
+        logger.info("sleeping...")
         time.sleep(60 * 10) # 10 minutes
+        logger.info("waking up!")
