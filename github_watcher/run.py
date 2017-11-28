@@ -13,9 +13,7 @@ import yaml
 from github import Github
 
 
-logger = logging.getLogger('github-watcher')
-logging.basicConfig(level=logging.ERROR)
-
+logger = logging.getLogger('github-watcher.run')
 
 WATCHER_ALERT_LOG = '/tmp/watcher_alert.log'
 
@@ -174,6 +172,7 @@ def already_alerted(pr_link):
 
 
 def main():
+    logger.info("Main running")
     while True:
         for user, repo_watchpaths in CONFIG.items():
             for repo, watchpaths in repo_watchpaths.items():
