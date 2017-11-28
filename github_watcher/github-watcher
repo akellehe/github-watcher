@@ -10,14 +10,12 @@ import github_watcher.config
 
 
 action_help = '''
-  github-watcher [run|config] [options]
-
-    - run     Runs the daemon. Watches files and alerts when there is
-              a pull request of interest.
-    - config  Convenience tool to help you configure the watcher. You
+run|config - *run* Runs the daemon. Watches files and alerts when there is a pull request of interest.
+             *config* Is a convenience tool to help you configure the watcher. You
               can add line ranges or directories, update the API url,
               or add new files to watch.
 '''
+
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('action', default='run', help=action_help)
