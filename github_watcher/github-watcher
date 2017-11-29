@@ -3,12 +3,17 @@ import sys
 import time
 import logging
 import argparse
+import os.path
 
 import github_watcher
 import github_watcher.run
 import github_watcher.config
+import github_watcher.check
 
 
+"""
+Parse CLI arguments
+"""
 action_help = '''
 run|config - *run* Runs the daemon. Watches files and alerts when there is a pull request of interest.
              *config* Is a convenience tool to help you configure the watcher. You
@@ -20,7 +25,20 @@ run|config - *run* Runs the daemon. Watches files and alerts when there is a pul
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('action', default='run', help=action_help)
 parser.add_argument('--verbose', dest='verbose', action='store_true', default=False)
+parser.add_argument('--repo', dest='repo', default=None, help='Used with "github-watcher check" to specify the repository to check. Required for check.')
+parser.add_argument('--user', dest='user', default=None, help='Used with "github-watcher check" to specify the user who owns the repostory to check. Required for check.')
+parser.add_argument('--filepath', dest='filepath', default=None, help='Used with "github-watcher check" to specify the filepath to check. Required for check.')
+parser.add_argument('--start-lineno', dest='start', default=0, help='Used with "github-watcher check" to specify the start of the line range to check. Optional.')
+parser.add_argument('--end-lineno', dest='end', default=1000000, help='Used with "github-watcher check" to speficy the end of the line range to check. Optional.')
+parser.add_argument('--access-token-file', dest='access_token_file', default=os.path.join(os.path.expanduser('~'), '.github'), help='Supply the file path where your github access token can be found')
+parser.add_argument('--github-url', dest='github_url', default=None, help='Supply a non-default github url where your enterprise installation can be found. It should probably end with /api/v3. Defaults to the github.com API')
+parser.add_argument('--config', dest='config_file', default=os.path.join(os.path.expanduser('~'), '.github-watcher.yml'), help='Specify a path to your github watcher config file.')
 args = parser.parse_args()
+
+
+"""
+Initialize logging
+"""
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG if args.verbose else logging.ERROR)
@@ -28,18 +46,26 @@ handler = logging.StreamHandler(stream=sys.stdout)
 handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - L%(lineno)d %(message)s'))
 logger.addHandler(handler)
 
+logging.getLogger('github.Requester').setLevel(logging.WARNING)
+
+
+"""
+Execute the user-defined action
+"""
+
 THROTTLE_THRESHOLD = 600 # seconds
 backoff = 1
 if args.action == 'run':
     while True:
+        logger.info("Retrying `run` action...")
         try:
             last_invokation = time.time()
-            github_watcher.run.main()
+            github_watcher.run.main(parser)
         except KeyboardInterrupt:
             sys.exit(0)
         except Exception as e:
+            logger.exception(e)
             if time.time() - last_invokation > THROTTLE_THRESHOLD:
-                logger.exception(e)
                 logger.error('Backing off {} seconds'.format(backoff))
                 backoff *= 2
             else:
@@ -47,7 +73,9 @@ if args.action == 'run':
             time.sleep(backoff)
             continue
 elif args.action == 'config':
-    github_watcher.config.main()
+    github_watcher.config.main(parser)
+elif args.action == 'check':
+    github_watcher.check.main(parser)
 else:
     parser.print_help()
-    sys.exit(1)
+    raise SystemExit 
