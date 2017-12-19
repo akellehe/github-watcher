@@ -17,49 +17,102 @@ logger = logging.getLogger('github-watcher.run')
 
 WATCHER_ALERT_LOG = '/tmp/watcher_alert.log'
 
+
 class Noop(Exception): pass
 
-try:
-    with open(os.path.join(os.path.expanduser('~'), '.github'), 'rb') as github_auth_fp:
-        oauth_token = github_auth_fp.read().strip()
-except IOError as e:
-    print "You must store your github access token at ~/.github." 
-    print "  1. Go to your github site (e.g. github.com) and"
-    print "  2. click your avatar in the top right then"
-    print "  3. click Settings then"
-    print "  4. click Personal access tokens on the left then"
-    print "  5. Generate access token then"
-    print "  6. click repo and user permissions checkboxes. next"
-    print "  7. click Generate Token. "
-    print "  8. SAVE THAT. copy/paste to ~/.github you will never see it again."
-    sys.exit(1)
 
-try:
-    with open(os.path.join(os.path.expanduser('~'), '.github-watcher.yml'), 'rb') as config:
-        CONFIG = yaml.load(config.read())
-        github_api_base_url = CONFIG.pop('github_api_base_url', 'https://api.github.com')
-except IOError as e:
-    print "You must include a configuration of what to watch at ~/.github-watcher.yml"
-    sys.exit(1)
+def raise_value_error(parser, parameter_name):
+    parser.print_help()
+    raise ValueError("--{} is required for the check action".format(parameter_name))
 
-headers = {'Authorization': 'token {}'.format(oauth_token)}
-gh = Github(login_or_token=oauth_token, base_url=github_api_base_url)
 
-def get_open_pull_requests(user, repo):
+def validate_args(parser):
+    args = parser.parse_args()
+    if args.repo is None:
+        raise_value_error(parser, 'repo') 
+    if args.user is None:
+        raise_value_error(parser, 'user') 
+    if args.filepath is None:
+        raise_value_error(parser, 'filepath')
+
+
+def read_access_token(parser):
+    args = parser.parse_args()
+    try:
+        with open(args.access_token_file, 'rb') as github_auth_fp:
+            return github_auth_fp.read().strip()
+    except IOError as e:
+        print "You must store your github access token at ~/.github." 
+        print "  1. Go to your github site (e.g. github.com) and"
+        print "  2. click your avatar in the top right then"
+        print "  3. click Settings then"
+        print "  4. click Personal access tokens on the left then"
+        print "  5. Generate access token then"
+        print "  6. click repo and user permissions checkboxes. next"
+        print "  7. click Generate Token. "
+        print "  8. SAVE THAT. copy/paste to ~/.github you will never see it again."
+        sys.exit(1)
+
+
+def get_cli_config(parser):
+    validate_args(parser)
+    args = parser.parse_args()
+    return args.github_url, {
+            'github_api_base_url': args.github_url or 'https://api.github.com',
+        args.user: {
+            args.repo: {
+                args.filepath: [
+                    [args.start, args.end]
+                ]
+            }
+        }
+    }
+
+
+def get_file_config(parser):
+    try:
+        with open(os.path.join(os.path.expanduser('~'), 
+            '.github-watcher.yml'), 'rb') as config:
+            return yaml.load(config.read())
+    except IOError as e:
+        print "You must include a configuration of what to watch at ~/.github-watcher.yml"
+        sys.exit(1)
+
+
+def get_config(parser, action='run'):
+    conf = {}
+
+    if action != 'run':
+        github_url, cli_config = get_cli_config(parser)
+        if not github_url:
+            del cli_config['github_api_base_url']
+    conf.update(get_file_config(parser))
+    if action != 'run':
+        conf.update(cli_config) # CLI args override file settings
+
+    return conf
+
+
+def get_open_pull_requests(parser, user, repo):
     repo_name = '{}/{}'.format(user, repo)
     logger.info("getting open pull requests for repo name={}".format(repo_name))
+    gh = Github(login_or_token=read_access_token(parser), 
+            base_url=get_config(parser).get('github_api_base_url'))
     prs = gh.get_repo(repo_name).get_pulls(state='open')
     for pr in prs:
         yield pr
 
 
-def get_diff(pull_request):
-    compare_url = github_api_base_url + '/repos/{user}/{repo}/compare/{user}:{base_sha}...{head_user}:{head_sha}'.format(
+def get_diff(parser, pull_request):
+    compare_url = get_config(parser).get('github_api_base_url') + \
+        '/repos/{user}/{repo}/compare/{user}:{base_sha}...{head_user}:{head_sha}'.format(
             user=pull_request.base.user.login,
             repo=pull_request.base.repo.name,
             base_sha=pull_request.base.sha,
             head_user=pull_request.head.user.login,
             head_sha=pull_request.head.sha)
+
+    headers = {'Authorization': 'token {}'.format(read_access_token(parser))}
 
     diff_json = requests.get(compare_url, headers=headers).json()
     diff_headers = "diff --git a/{filename} b/{filename}\n"
@@ -87,8 +140,9 @@ def get_diff(pull_request):
 
     return diff
 
-def get_watched_file(user, repo, hunk_path):
-    paths = CONFIG.get(user, {}).get(repo, [])
+
+def get_watched_file(config, user, repo, hunk_path):
+    paths = config.get(user, {}).get(repo, [])
     if not paths:
         return None
     for path in paths:
@@ -97,8 +151,8 @@ def get_watched_file(user, repo, hunk_path):
     return None
 
 
-def get_watched_directory(user, repo, hunk_path):
-    paths = CONFIG.get(user, {}).get(repo, [])
+def get_watched_directory(config, user, repo, hunk_path):
+    paths = config.get(user, {}).get(repo, [])
     if not paths:
         return None
     for path in paths:
@@ -122,6 +176,8 @@ def alert(user, repo, file, range, pr_link):
 def are_watched_lines(watchpaths, filepath, start, end):
     if filepath not in watchpaths:
         return False
+    logger.info("Filepath: {}".format(filepath))
+    logger.info("Watchpaths: {}".format(str(watchpaths[filepath])))
     for watched_start, watched_end in watchpaths[filepath]:
         if watched_start < start < watched_end:
             return True
@@ -130,18 +186,18 @@ def are_watched_lines(watchpaths, filepath, start, end):
     return False
 
 
-def alert_if_watched_changes(watchpaths, user, repo, patched_file, link, source_or_target='source'):
+def alert_if_watched_changes(config, watchpaths, user, repo, patched_file, link, source_or_target='source'):
     filepath = getattr(patched_file, source_or_target + '_file')
     if filepath.startswith('a/') or filepath.startswith('b/'):
         filepath = filepath[2:]
 
-    watched_directory = get_watched_directory(user, repo, filepath)
+    watched_directory = get_watched_directory(config, user, repo, filepath)
     if watched_directory and not already_alerted(link):
         alert(user, repo, watched_directory, '', link)
         mark_as_alerted(link)
         return True
 
-    watched_file = get_watched_file(user, repo, filepath)
+    watched_file = get_watched_file(config, user, repo, filepath)
     if watched_file:
         for hunk in patched_file:
             start = getattr(hunk, source_or_target + '_start')
@@ -174,27 +230,34 @@ def already_alerted(pr_link):
     return False
 
 
-def main():
-    logger.info("main() running...")
-    while True:
-        for user, repo_watchpaths in CONFIG.items():
-            for repo, watchpaths in repo_watchpaths.items():
-                open_prs = get_open_pull_requests(user, repo)
-                for open_pr in open_prs:
-                    link = open_pr.html_url
-                    try:
-                        logger.info("Extracting diff and creating patchset. This is a hack.")
-                        patchset = unidiff.PatchSet.from_string(get_diff(open_pr))
-                    except Noop:
-                        logger.info("Got a noop diff")
+def check_config(parser, config):
+    logger.info("check_config() running...")
+    for user, repo_watchpaths in config.items():
+        if not isinstance(repo_watchpaths, dict):
+            continue # Not all configs are watchpaths
+        logger.info("User: {}, repo_watchpaths: {}".format(user, repo_watchpaths))
+        for repo, watchpaths in repo_watchpaths.items():
+            open_prs = get_open_pull_requests(parser, user, repo)
+            for open_pr in open_prs:
+                link = open_pr.html_url
+                try:
+                    logger.info("Extracting diff and creating patchset. This is a hack.")
+                    patchset = unidiff.PatchSet.from_string(get_diff(parser, open_pr))
+                except Noop:
+                    logger.info("Got a noop diff")
+                    continue
+                logger.info("Checking each file...")
+                for patched_file in patchset:
+                    logger.info("Checking {}/{}/{}".format(user, repo, patched_file.source_file))
+                    if alert_if_watched_changes(config, watchpaths, user, repo, patched_file, link, 'source'):
                         continue
-                    logger.info("Checking each file...")
-                    for patched_file in patchset:
-                        logger.info("Checking {}/{}/{}".format(user, repo, patched_file.source_file))
-                        if alert_if_watched_changes(watchpaths, user, repo, patched_file, link, 'source'):
-                            continue
-                        logger.info("Checking {}/{}/{}".format(user, repo, patched_file.target_file))
-                        alert_if_watched_changes(watchpaths, user, repo, patched_file, link, 'target')
+                    logger.info("Checking {}/{}/{}".format(user, repo, patched_file.target_file))
+                    alert_if_watched_changes(config, watchpaths, user, repo, patched_file, link, 'target')
+
+def main(parser):
+    config = get_config(parser)
+    while True:
+        check_config(parser, config)
         logger.info("sleeping...")
         time.sleep(60 * 10) # 10 minutes
         logger.info("waking up!")
