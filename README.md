@@ -7,6 +7,14 @@ Github Watcher is a daemon that monitors the files, line ranges, and directories
 Configuration
 -------------
 
+If you want to skip a lot of configuration you can run `github-watcher` as a one-off using the `check` action:
+
+```bash
+github-watcher check --repo [your repo name] --user [your username] --filepath path/to/your/file.py --github-url https://[site name]/api/v3
+```
+
+You only need to specify your `--github-url` if you're using Github Enterprise. Otherwise you can leave that argument out. This will run, looking for files matching your args _once_, then exit. You can get help on CLI args `github-watcher` accepts by passing the `-h` or `--help` option. If you want to daemonize `github-watcher` it will take some configuration.
+
 You can configure `github-watcher` after you install it by running `github-watcher config`. Just follow the prompts and your config will be written to `~/.github-watcher.yml`. If you mess up it's ok, just edit the file manually after you exit or re-run `github-watcher config`.
 
 You can also use this tool to edit existing configs, but only to add to them. If you want to delete something you have to do it manually.
