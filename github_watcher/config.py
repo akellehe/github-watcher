@@ -38,7 +38,7 @@ def get_base_config():
     try:
         with open(TOKEN_CONFIG, "rb") as fp:
             api_token = fp.read().strip()
-    except IOError:
+    except IOError, e:
         api_token = None
 
     if not api_token:
@@ -70,6 +70,9 @@ def get_github_api_base_url(config):
         api_domain = raw_input("What is your site domain?\n(api.github.com) >> ")
         if api_domain:
             api_url = "https://" + api_domain + "/api/v3"
+    else:
+        return config.get('github_api_base_url')
+    return api_url
 
 
 def prompt_for_project_path():
@@ -102,7 +105,7 @@ def should_get_additional_watched_file(config):
     logger.info("=================================")
     logger.info("Updated configuration:")
     logger.info("")
-    logger.info(yaml.dump(config)))
+    logger.info(yaml.dump(config))
     logger.info("=================================")
     logger.info("")
     add_another_file = raw_input("Would you like to add another (a), or quit (q)?\n(q) >> ") or 'q'
