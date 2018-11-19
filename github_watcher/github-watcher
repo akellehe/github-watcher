@@ -5,9 +5,11 @@ import logging
 import argparse
 import os.path
 
-import github_watcher.run
-import github_watcher.config
-import github_watcher.check
+import github_watcher
+import github_watcher.commands
+import github_watcher.commands.run
+import github_watcher.commands.check
+import github_watcher.commands.config
 
 
 THROTTLE_THRESHOLD = 600  # seconds
@@ -54,7 +56,7 @@ def daemonize(parser):
         logging.info("Retrying `run` action...")
         try:
             last_invocation = time.time()
-            github_watcher.run.main(parser)
+            github_watcher.commands.run.main(parser)
         except KeyboardInterrupt:
             sys.exit(0)
         except Exception as e:
@@ -73,9 +75,9 @@ def main():
     if args.action == 'run':
         daemonize(parser)
     elif args.action == 'config':
-        github_watcher.config.main(parser)
+        github_watcher.commands.config.main()
     elif args.action == 'check':
-        github_watcher.check.main(parser)
+        github_watcher.commands.check.main(parser)
     else:
         parser.print_help()
         raise SystemExit

@@ -1,49 +1,67 @@
-import os
 import collections
+import sys
 import logging
 
 import yaml
 
+import github_watcher.settings as settings
+import github_watcher.util as util
 
-HOME = os.path.expanduser('~')
-WATCHER_CONFIG = os.path.join(HOME, '.github-watcher.yml')
-TOKEN_CONFIG = os.path.join(HOME, ".github")
 
-def main(conf):
+def get_cli_config(parser):
+    util.validate_args(parser)
+    args = parser.parse_args()
+    return args.github_url, {
+        'github_api_base_url': args.github_url or 'https://api.github.com',
+        args.user: {
+            args.repo: {
+                args.filepath: [
+                    [args.start, args.end]
+                ]
+            }
+        }
+    }
+
+
+def get_file_config():
     try:
-        with open(TOKEN_CONFIG, "rb") as fp:
-            api_token = fp.read().strip()
-    except IOError:
-        api_token = None
+        with open(settings.WATCHER_CONFIG, 'rb') as config:
+            return yaml.load(config.read())
+    except IOError as e:
+        logging.info("You must include a configuration of what to watch at ~/.github-watcher.yml")
+        sys.exit(1)
 
-    if not api_token:
+
+def get_config(parser, action='run'):
+    conf = {}
+
+    if action != 'run':
+        github_url, cli_config = get_cli_config(parser)
+        if not github_url:
+            del cli_config['github_api_base_url']
+    conf.update(get_file_config())
+    if action != 'run':
+        conf.update(cli_config) # CLI args override file settings
+
+    return conf
+
+
+def main(parser):
+    try:
+        read_access_token(parser)
+    except ValueError:
         api_token = input("What is your personal github API token (with user and repo grants)?").strip()
         try:
-            with open(TOKEN_CONFIG, 'w+') as token_fp:
+            with open(settings.TOKEN_CONFIG, 'w+') as token_fp:
                token_fp.write(api_token)
         except IOError:
             logging.info("Couldn't open your token file. Make sure it's writeable at ~/.github")
-        except:
-            logging.info("You must store your github access token at ~/.github.") 
-            logging.info("  1. Go to your github site (e.g. github.com) and")
-            logging.info("  2. click your avatar in the top right then")
-            logging.info("  3. click Settings then")
-            logging.info("  4. click Personal access tokens on the left then")
-            logging.info("  5. Generate access token then")
-            logging.info("  6. click repo and user permissions checkboxes. next")
-            logging.info("  7. click Generate Token. ")
-            logging.info("  8. SAVE THAT. copy/paste to ~/.github you will never see it again.")
 
     try:
-        with open(WATCHER_CONFIG, 'rb') as config_fp:
+        with open(settings.WATCHER_CONFIG, 'rb') as config_fp:
             config = yaml.load(config_fp.read())
     except IOError:
         config = {}
-
-    logging.info("Starting with config")
-    logging.info("")
-    logging.info((yaml.dump(config)))
-    logging.info("")
 
     api_domain = input("What is your site domain?\n(api.github.com) >> ")
     if not api_domain:
@@ -106,7 +124,7 @@ def main(conf):
     write = input("Write the config (y/n)?\n(n) >> ")
     if write.startswith('y'):
         try:
-            with open(WATCHER_CONFIG, 'w+') as config_fp:
+            with open(settings.WATCHER_CONFIG, 'w+') as config_fp:
                 config_fp.write(yaml.dump(config))
         except IOError:
             logging.info("Permission denied.")
