@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/akellehe/github-watcher.svg?branch=master)](https://travis-ci.org/akellehe/github-watcher)
+
 Github Watcher
 ==============
 
