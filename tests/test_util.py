@@ -1,3 +1,4 @@
+import tempfile
 import unittest
 import unittest.mock as mock
 
@@ -29,5 +30,7 @@ class TestUtil(unittest.TestCase):
         parser.parse_args.return_value = args
         args.access_token_file = ''
 
-        with self.assertRaisesRegex(ValueError, ">> github-watcher --help for more information"):
+        with mock.patch('logging.error') as logging_error:
             util.read_access_token(parser)
+            logging_error.assert_any_call("No token file found. Checking ~/.github-watcher.yml...")
+

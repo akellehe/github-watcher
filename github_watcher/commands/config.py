@@ -46,43 +46,49 @@ def get_config(parser, action='run'):
     return conf
 
 
-def main(parser):
+def load_access_token(parser):
     try:
-        read_access_token(parser)
+        return util.read_access_token(parser)
     except ValueError:
-        api_token = input("What is your personal github API token (with user and repo grants)?").strip()
-        try:
-            with open(settings.TOKEN_CONFIG, 'w+') as token_fp:
-               token_fp.write(api_token)
-        except IOError:
-            logging.info("Couldn't open your token file. Make sure it's writeable at ~/.github")
+        return input("What is your personal github API token (with user and repo grants)? >> ").strip()
 
+
+def load_previous_config():
+    config = {}
     try:
         with open(settings.WATCHER_CONFIG, 'rb') as config_fp:
             config = yaml.load(config_fp.read())
-    except IOError:
-        config = {}
+    finally:
+        return config
 
+
+def load_api_url(previous_config):
+    if 'github_api_base_url' in previous_config:
+        return previous_config.get('github_api_base_url')
     api_domain = input("What is your site domain?\n(api.github.com) >> ")
     if not api_domain:
-        api_url = "https://api.github.com"
-    else:
-        api_url = "https://" + api_domain + "/api/v3"
+        return "https://api.github.com"
+    return "https://" + api_domain + "/api/v3"
 
-    if 'github_api_base_url' in config:
-        overwrite = input("Ok to overwrite {} with {} (y/n)?\n(n) >> ".format(config.get('github_api_base_url'), api_url))
-        if overwrite.startswith('y'):
-            config['github_api_base_url'] = api_url
 
-    def update(d, u):
-        for k, v in list(u.items()):
-            if isinstance(v, collections.Mapping):
-                d[k] = update(d.get(k, {}), v)
-            elif isinstance(v, list) and k in d:
-                d[k] += v
-            else:
-                d[k] = v
-        return d
+def update(d, u):
+    for k, v in list(u.items()):
+        if isinstance(v, collections.Mapping):
+            d[k] = update(d.get(k, {}), v)
+        elif isinstance(v, list) and k in d:
+            d[k] += v
+        else:
+            d[k] = v
+    return d
+
+
+def main(parser):
+    access_token = load_access_token(parser)
+    config = load_previous_config()
+    api_url = load_api_url(config)
+
+    config['github_api_secret_token'] = access_token
+    config['github_api_base_url'] = api_url
 
     while True:
         username = input("What github username or company owns the project you would like to watch?\n>> ")
@@ -111,20 +117,18 @@ def main(parser):
             }
         })
 
-        logging.info("=================================")
-        logging.info("Updated configuration:")
-        logging.info("")
-        logging.info((yaml.dump(config)))
-        logging.info("=================================")
-        logging.info("")
-        add_another_file = input("Would you like to add another (a), or quit (q)?\n(q) >> ") or q
+        print("=================================")
+        print("Updated configuration:")
+        print("")
+        print((yaml.dump(config)))
+        print("=================================")
+        print("")
+
+        add_another_file = input("Would you like to add another (a), or quit (q)?\n(q) >> ") or "q"
         if add_another_file.startswith('q'):
             break
 
     write = input("Write the config (y/n)?\n(n) >> ")
     if write.startswith('y'):
-        try:
-            with open(settings.WATCHER_CONFIG, 'w+') as config_fp:
-                config_fp.write(yaml.dump(config))
-        except IOError:
-            logging.info("Permission denied.")
+        with open(settings.WATCHER_CONFIG, 'w+') as config_fp:
+            config_fp.write(yaml.dump(config))

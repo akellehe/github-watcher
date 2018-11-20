@@ -1,5 +1,9 @@
 import logging
 
+import yaml
+
+import github_watcher.settings as settings
+
 
 HELP_MESSAGE = """
 You must store your github access token at ~/.github.
@@ -31,9 +35,10 @@ def validate_args(parser):
 
 def read_access_token(parser):
     args = parser.parse_args()
-    try:
+    if args.access_token_file:
         with open(args.access_token_file, 'rb') as github_auth_fp:
             return github_auth_fp.read().decode('utf-8').strip()
-    except IOError as e:
-        logging.error(HELP_MESSAGE)
-        raise ValueError(">> github-watcher --help for more information")
+
+    logging.error("No token file found. Checking ~/.github-watcher.yml...")
+    with open(settings.WATCHER_CONFIG, 'rb') as watcher_config:
+        return yaml.load(watcher_config.read().decode('utf-8').strip()).get('github_api_secret_token')

@@ -75,7 +75,7 @@ def main():
     if args.action == 'run':
         daemonize(parser)
     elif args.action == 'config':
-        github_watcher.commands.config.main()
+        github_watcher.commands.config.main(parser)
     elif args.action == 'check':
         github_watcher.commands.check.main(parser)
     else:
