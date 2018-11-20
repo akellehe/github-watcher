@@ -2,3 +2,4 @@ build
 dist
 github_watcher.egg-info
 .idea
+.eggs
