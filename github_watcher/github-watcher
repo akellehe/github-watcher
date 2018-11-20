@@ -47,6 +47,8 @@ def parse_cli():
     parser.add_argument('--config', dest='config_file',
                         default=os.path.join(os.path.expanduser('~'), '.github-watcher.yml'),
                         help='Specify a path to your github watcher config file.')
+    parser.add_argument('--debug', dest='debug', default=False, action='store_true',
+                        help="Pass this flag to include debug output. DANGER: This may print your access token.")
     return parser, parser.parse_args()
 
 
@@ -72,6 +74,8 @@ def daemonize(parser):
 
 def main():
     parser, args = parse_cli()
+    if args.debug or args.verbose:
+        logging.basicConfig(level=logging.INFO)
     if args.action == 'run':
         daemonize(parser)
     elif args.action == 'config':

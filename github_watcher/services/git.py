@@ -11,6 +11,7 @@ class Noop(Exception): pass
 def open_pull_requests(base_url, access_token, user, repo):
     repo_name = '{}/{}'.format(user, repo)
     logging.info("getting open pull requests for repo name={}".format(repo_name))
+    logging.info("base_url=%s, access_token=%s, repo=%s", base_url, access_token, repo_name)
     gh = Github(access_token, base_url=base_url)
     repo = gh.get_repo(repo_name)
     pulls = repo.get_pulls(state='open')

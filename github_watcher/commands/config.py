@@ -26,7 +26,7 @@ def get_cli_config(parser):
 def get_file_config():
     try:
         with open(settings.WATCHER_CONFIG, 'rb') as config:
-            return yaml.load(config.read())
+            return yaml.load(config.read().decode('utf-8'))
     except IOError as e:
         logging.info("You must include a configuration of what to watch at ~/.github-watcher.yml")
         sys.exit(1)
@@ -46,6 +46,7 @@ def get_config(parser, action='run'):
     return conf
 
 
+@util.assert_string
 def load_access_token(parser):
     try:
         return util.read_access_token(parser)
@@ -57,7 +58,7 @@ def load_previous_config():
     config = {}
     try:
         with open(settings.WATCHER_CONFIG, 'rb') as config_fp:
-            config = yaml.load(config_fp.read())
+            config = yaml.load(config_fp.read().decode('utf-8'))
     finally:
         return config
 

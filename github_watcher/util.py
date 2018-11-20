@@ -18,6 +18,14 @@ You must store your github access token at ~/.github.
 """
 
 
+def assert_string(f):
+    def _(*args, **kwargs):
+        target = f(*args, **kwargs)
+        assert isinstance(target, str), "Expected <{}>to be a string.".format(target)
+        return target
+    return _
+
+
 def raise_value_error(parser, parameter_name):
     parser.print_help()
     raise ValueError("--{} is required for the check action".format(parameter_name))
@@ -33,6 +41,7 @@ def validate_args(parser):
         raise_value_error(parser, 'filepath')
 
 
+@assert_string
 def read_access_token(parser):
     args = parser.parse_args()
     if args.access_token_file:
