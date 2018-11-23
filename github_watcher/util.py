@@ -42,7 +42,7 @@ def validate_args(parser):
 
 
 @assert_string
-def read_access_token(parser):
+def read_access_token(parser, filepath=None):
     args = parser.parse_args()
     if args.access_token_file:
         with open(args.access_token_file, 'rb') as github_auth_fp:
