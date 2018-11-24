@@ -1,26 +1,34 @@
 import collections
-import sys
+import json
 import logging
 
 import yaml
 
 import github_watcher.settings as settings
-import github_watcher.util as util
+
+
+def nonempty_watch_path(args):
+    if all([args.user, args.repo, args.filepath]):
+        return True
+    elif any([args.user, args.repo, args.filepath]):
+        raise RuntimeError("If you pass any of --user, --repo, and --filepath you must pass all of them.")
+    return False
 
 
 def get_cli_config(parser):
-    util.validate_args(parser)
     args = parser.parse_args()
-    return args.github_url, {
-        'github_api_base_url': args.github_url or 'https://api.github.com',
-        args.user: {
-            args.repo: {
-                args.filepath: [
-                    [args.start, args.end]
-                ]
-            }
-        }
-    }
+    cli_config = {}
+    if nonempty_watch_path(args):
+        cli_config = {
+            args.user: {
+                args.repo: {
+                    args.filepath: []}}}
+        if args.start is not None and args.end is not None:
+            cli_config[args.user][args.repo][args.filepath].append(
+                [args.start, args.end])
+    if args.github_url:
+        cli_config['github_api_base_url'] = args.github_url
+    return cli_config
 
 
 def get_file_config():
@@ -28,48 +36,31 @@ def get_file_config():
         with open(settings.WATCHER_CONFIG, 'rb') as config:
             return yaml.load(config.read().decode('utf-8'))
     except IOError as e:
-        logging.info("You must include a configuration of what to watch at ~/.github-watcher.yml")
-        sys.exit(1)
+        logging.warning("{} configuration file not found.".format(settings.WATCHER_CONFIG))
+        return {}
 
 
-def get_config(parser, action='run'):
+def get_config(parser):
     conf = {}
+    logging.info("get_config called.")
+    cli_config = get_cli_config(parser)
+    logging.info("Client config %s", json.dumps(cli_config))
+    file_config = get_file_config()
+    logging.info("File config %s", json.dumps(file_config))
+    if not cli_config and not file_config:
+        raise RuntimeError("No configuration found.")
 
-    if action != 'run':
-        github_url, cli_config = get_cli_config(parser)
-        if not github_url:
-            del cli_config['github_api_base_url']
-    conf.update(get_file_config())
-    if action != 'run':
-        conf.update(cli_config) # CLI args override file settings
+    conf['github_api_secret_token'] = file_config.get('github_api_secret_token')
+    conf['github_api_base_url'] = file_config.get('github_api_base_url')
+
+    if cli_config:
+        conf.update(cli_config)
+        return conf
+
+    conf.update(file_config)
+    conf.update(cli_config)  # CLI args override file settings
 
     return conf
-
-
-@util.assert_string
-def load_access_token(parser):
-    try:
-        return util.read_access_token(parser)
-    except ValueError:
-        return input("What is your personal github API token (with user and repo grants)? >> ").strip()
-
-
-def load_previous_config():
-    config = {}
-    try:
-        with open(settings.WATCHER_CONFIG, 'rb') as config_fp:
-            config = yaml.load(config_fp.read().decode('utf-8'))
-    finally:
-        return config
-
-
-def load_api_url(previous_config):
-    if 'github_api_base_url' in previous_config:
-        return previous_config.get('github_api_base_url')
-    api_domain = input("What is your site domain?\n(api.github.com) >> ")
-    if not api_domain:
-        return "https://api.github.com"
-    return "https://" + api_domain + "/api/v3"
 
 
 def update(d, u):
@@ -83,53 +74,74 @@ def update(d, u):
     return d
 
 
+def get_line_range():
+    line_start = input("What is the beginning of the line range you would like to watch in that file?\n(0) >> ")
+    line_end = input("What is the end of the line range you would like to watch in that file?\n(infinity) >> ")
+    return [int(line_start or 0), int(line_end or 10000000)]
+
+
+def should_stop():
+    another = input("Would you like to add another line range (y/n)?\n>> ") or "n"
+    return another.startswith("n")
+
+
+def get_project_metadata():
+    username = input("What github username or company owns the project you would like to watch?\n>> ")
+    project = input("What is the project name you would like to watch?\n>> ")
+    filepath = input("What is the file path you would like to watch (directories must end with /)?\n>> ")
+    while filepath.startswith("/"):
+        filepath = input("No absolute file paths. Try again.\n>> ")
+    return username, project, filepath
+
+
+def display_configuration(config):
+    print("=================================")
+    print("Updated configuration:")
+    print("")
+    print((yaml.dump(config)))
+    print("=================================")
+    print("")
+
+
+def get_api_base_url(config):
+    base_url = config.get('github_api_base_url')
+    if base_url:
+        return base_url
+    base_url = input("What is the base API url for your github site? (api.github.com)\n>> ")
+    if base_url:
+        return base_url
+    return 'https://api.github.com'
+
+
 def main(parser):
-    access_token = load_access_token(parser)
-    config = load_previous_config()
-    api_url = load_api_url(config)
-
-    config['github_api_secret_token'] = access_token
-    config['github_api_base_url'] = api_url
-
+    try:
+        config = get_config(parser)
+    except RuntimeError:
+        config = {}
     while True:
-        username = input("What github username or company owns the project you would like to watch?\n>> ")
-        project = input("What is the project name you would like to watch?\n>> ")
-        filepath = input("What is the file path you would like to watch (directories must end with /)?\n>> ")
-        if filepath.startswith("/"):
-            filepath = input("No absolute file paths. Try again.\n>> ")
+        username, project, filepath = get_project_metadata()
+        line_ranges = None
         if not filepath.endswith("/"):
             line_ranges = []
             while True:
-                line_start = input("What is the beginning of the line range you would like to watch in that file?\n(0) >> ")
-                line_end = input("What is the end of the line range you would like to watch in that file?\n(infinity) >> ")
-                line_range = [int(line_start or 0), int(line_end or 10000000)]
-                line_ranges.append(line_range)
-                another = input("Would you like to add another line range (y/n)?\n>> ") or "n"
-                if another.startswith("n"):
-                    break
-        else:
-            line_ranges = None
-
+                line_ranges.append(get_line_range())
+                if should_stop(): break
         config = update(config, {
+            'github_api_base_url': get_api_base_url(config),
             username: {
                 project: {
                     filepath: line_ranges
                 }
             }
         })
-
-        print("=================================")
-        print("Updated configuration:")
-        print("")
-        print((yaml.dump(config)))
-        print("=================================")
-        print("")
-
+        display_configuration(config)
         add_another_file = input("Would you like to add another (a), or quit (q)?\n(q) >> ") or "q"
         if add_another_file.startswith('q'):
             break
-
     write = input("Write the config (y/n)?\n(n) >> ")
     if write.startswith('y'):
         with open(settings.WATCHER_CONFIG, 'w+') as config_fp:
             config_fp.write(yaml.dump(config))
+    if 'github_api_secret_token' not in config:
+        print("You will need to add your `github_api_secret_token` to {}".format(settings.WATCHER_CONFIG))
+

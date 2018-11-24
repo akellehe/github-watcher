@@ -31,23 +31,7 @@ def raise_value_error(parser, parameter_name):
     raise ValueError("--{} is required for the check action".format(parameter_name))
 
 
-def validate_args(parser):
-    args = parser.parse_args()
-    if args.repo is None:
-        raise_value_error(parser, 'repo')
-    if args.user is None:
-        raise_value_error(parser, 'user')
-    if args.filepath is None:
-        raise_value_error(parser, 'filepath')
-
-
 @assert_string
-def read_access_token(parser):
-    args = parser.parse_args()
-    if args.access_token_file:
-        with open(args.access_token_file, 'rb') as github_auth_fp:
-            return github_auth_fp.read().decode('utf-8').strip()
-
-    logging.error("No token file found. Checking ~/.github-watcher.yml...")
+def read_access_token():
     with open(settings.WATCHER_CONFIG, 'rb') as watcher_config:
         return yaml.load(watcher_config.read().decode('utf-8').strip()).get('github_api_secret_token')

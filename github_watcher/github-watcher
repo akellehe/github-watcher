@@ -6,6 +6,7 @@ import argparse
 import os.path
 
 import github_watcher
+import github_watcher.settings
 import github_watcher.commands
 import github_watcher.commands.run
 import github_watcher.commands.check
@@ -38,14 +39,11 @@ def parse_cli():
     parser.add_argument('--end-lineno', dest='end', default=1000000,
                         help='Used with "github-watcher check" to speficy the end of the line range to check. ' +
                              'Optional.')
-    parser.add_argument('--access-token-file', dest='access_token_file',
-                        default=os.path.join(os.path.expanduser('~'), '.github'),
-                        help='Supply the file path where your github access token can be found')
     parser.add_argument('--github-url', dest='github_url', default=None,
                         help='Supply a non-default github url where your enterprise installation can be found. It ' +
-                             'should probably end with /api/v3. Defaults to the github.com API')
+                             'should probably end with /api/v3. Defaults to the api.github.com API')
     parser.add_argument('--config', dest='config_file',
-                        default=os.path.join(os.path.expanduser('~'), '.github-watcher.yml'),
+                        default=os.path.join(os.path.expanduser('~'), github_watcher.settings.WATCHER_CONFIG),
                         help='Specify a path to your github watcher config file.')
     parser.add_argument('--debug', dest='debug', default=False, action='store_true',
                         help="Pass this flag to include debug output. DANGER: This may print your access token.")
@@ -55,7 +53,7 @@ def parse_cli():
 def daemonize(parser):
     backoff = 1
     while True:
-        logging.info("Retrying `run` action...")
+        logging.info("Running `run` action...")
         try:
             last_invocation = time.time()
             github_watcher.commands.run.main(parser)
@@ -75,7 +73,7 @@ def daemonize(parser):
 def main():
     parser, args = parse_cli()
     if args.debug or args.verbose:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logging.INFO, format="%(levelname)s %(filename)s %(lineno)d: %(message)s")
     if args.action == 'run':
         daemonize(parser)
     elif args.action == 'config':

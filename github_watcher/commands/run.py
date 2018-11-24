@@ -100,7 +100,7 @@ def already_alerted(pr_link):
 def find_changes(parser, conf):
     logging.info("check_config() running...")
     base_url = conf.get('github_api_base_url')
-    access_token = util.read_access_token(parser)
+    access_token = util.read_access_token()
     for user, repo_watchpaths in list(conf.items()):
         if not isinstance(repo_watchpaths, dict):
             continue  # Not all configs are watchpaths
@@ -125,6 +125,7 @@ def find_changes(parser, conf):
 
 
 def main(parser):
+    logging.info("Running main in commands/run.py")
     conf = config.get_config(parser)
     while True:
         find_changes(parser, conf)
