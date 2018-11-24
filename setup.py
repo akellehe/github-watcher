@@ -16,7 +16,7 @@ setup(name='github_watcher',
         url='https://github.com/akellehe/github-watcher',
         install_requires=[
            'unidiff==0.5.4',
-           'requests==2.18.4',
+           'requests==2.20.0',
            'pync==2.0.3',
            'PyYAML==3.11',
            'PyGithub==1.43',
