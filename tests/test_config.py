@@ -9,8 +9,7 @@ import github_watcher.commands.config as config
 
 class TestConfig(unittest.TestCase):
 
-    @mock.patch('github_watcher.util.validate_args')
-    def test_get_cli_config(self, _):
+    def test_get_cli_config(self,):
         args = mock.MagicMock()
         github_url = 'http://github.com'
         args.github_url = github_url
@@ -47,13 +46,12 @@ class TestConfig(unittest.TestCase):
             observed = config.get_file_config()
             self.assertEqual(expected, observed)
 
-    @mock.patch('github_watcher.util.validate_args')
-    def test_get_config_raises_system_exit(self, _):
+    def test_get_config_raises_runtime_error(self):
         parser = mock.MagicMock()
         with mock.patch('github_watcher.settings.WATCHER_CONFIG', ''):
             with mock.patch('github_watcher.commands.config.get_cli_config',
                             return_value={}):
-                with self.assertRaisesRegex(SystemExit, 'No configuration found.'):
+                with self.assertRaisesRegex(RuntimeError, 'No configuration found.'):
                     config.get_config(parser)
 
     @mock.patch('github_watcher.commands.config.get_cli_config')
@@ -233,8 +231,10 @@ class TestConfig(unittest.TestCase):
         tmpfile.write(bytes('', 'utf8'))
         tmpfile.flush()
         with mock.patch('github_watcher.settings.WATCHER_CONFIG', tmpfile.name):
-            config.main(parser)
+            with mock.patch('github_watcher.commands.config.input') as inp:
+                inp.return_value = ''
+                config.main(parser)
 
         get_config.assert_any_call(parser)
         get_project_metadata.assert_called()
-        display_configuration.assert_any_call({'username': {'project': {'filepath': [[1, 1]]}}})
+        display_configuration.assert_any_call({'github_api_base_url': 'https://api.github.com', 'username': {'project': {'filepath': [[0, 10000000]]}}})
