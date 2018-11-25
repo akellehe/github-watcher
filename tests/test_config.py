@@ -9,6 +9,27 @@ import github_watcher.commands.config as config
 
 class TestConfig(unittest.TestCase):
 
+    def test_nonempty_watch_path(self):
+        args = mock.MagicMock()
+        args.user = 'akellehe'
+        args.repo = 'github-watcher'
+        args.filepath = 'path/to/some/file.py'
+        self.assertTrue(config.nonempty_watch_path(args))
+
+        args = mock.MagicMock()
+        args.user = 'akellehe'
+        args.repo = None
+        args.filepath = None
+        with self.assertRaisesRegex(RuntimeError,
+            "If you pass any of --user, --repo, and --filepath you must pass all of them."):
+            config.nonempty_watch_path(args)
+
+        args = mock.MagicMock()
+        args.user = None
+        args.repo = None
+        args.filepath = None
+        self.assertFalse(config.nonempty_watch_path(args))
+
     def test_get_cli_config(self,):
         args = mock.MagicMock()
         github_url = 'http://github.com'
@@ -192,12 +213,7 @@ class TestConfig(unittest.TestCase):
 
     @mock.patch('github_watcher.commands.config.input')
     def test_get_project_metadata(self, _input):
-        outputs = ['username', 'project', 'filepath']
-
-        def _(*args, **kwargs):
-            return outputs.pop(0)
-
-        _input.side_effect = _
+        _input.side_effect = ['username', 'project', 'filepath']
         username, project, filepath = config.get_project_metadata()
         self.assertEqual(username, 'username')
         self.assertEqual(project, 'project')
@@ -205,6 +221,14 @@ class TestConfig(unittest.TestCase):
         _input.assert_any_call("What github username or company owns the project you would like to watch?\n>> ")
         _input.assert_any_call("What is the project name you would like to watch?\n>> ")
         _input.assert_any_call("What is the file path you would like to watch (directories must end with /)?\n>> ")
+
+        _input.side_effect = ['username', 'project', '/filepath', Exception('foobar')]
+        with self.assertRaisesRegex(Exception, 'foobar'):
+            config.get_project_metadata()
+        _input.assert_any_call("What github username or company owns the project you would like to watch?\n>> ")
+        _input.assert_any_call("What is the project name you would like to watch?\n>> ")
+        _input.assert_any_call("What is the file path you would like to watch (directories must end with /)?\n>> ")
+        _input.assert_any_call("No absolute file paths. Try again.\n>> ")
 
     @mock.patch('github_watcher.commands.config.should_stop')
     @mock.patch('github_watcher.commands.config.display_configuration')
@@ -238,3 +262,90 @@ class TestConfig(unittest.TestCase):
         get_config.assert_any_call(parser)
         get_project_metadata.assert_called()
         display_configuration.assert_any_call({'github_api_base_url': 'https://api.github.com', 'username': {'project': {'filepath': [[0, 10000000]]}}})
+
+    @mock.patch('github_watcher.commands.config.should_stop')
+    @mock.patch('github_watcher.commands.config.display_configuration')
+    @mock.patch('github_watcher.commands.config.input')
+    @mock.patch('github_watcher.commands.config.get_config')
+    def test_main_with_write_config(self, get_config, _input, display_configuration, should_stop):
+        should_stop.return_value = True
+        get_config.return_value = {}
+
+        args = mock.MagicMock()
+        github_url = 'http://github.com'
+        args.github_url = github_url
+        args.user = 'akellehe'
+        args.repo = 'github-watcher'
+        args.filepath = '/'
+        args.start = 0
+        args.end = 100
+        parser = mock.MagicMock()
+        parser.parse_args.return_value = args
+
+        tmpfile = tempfile.NamedTemporaryFile()
+        tmpfile.write(bytes('', 'utf8'))
+        tmpfile.flush()
+        with mock.patch('github_watcher.settings.WATCHER_CONFIG', tmpfile.name):
+            with mock.patch('github_watcher.commands.config.input') as inp:
+                inp.side_effect = ['username', 'project', 'filepath', 0, 10, 'my base url', 'q', 'y']
+                config.main(parser)
+
+        get_config.assert_any_call(parser)
+        display_configuration.assert_any_call({'github_api_base_url': 'my base url', 'username': {'project': {'filepath': [[0, 10]]}}})
+
+    @mock.patch('github_watcher.commands.config.should_stop')
+    @mock.patch('github_watcher.commands.config.display_configuration')
+    @mock.patch('github_watcher.commands.config.get_project_metadata')
+    @mock.patch('github_watcher.commands.config.input')
+    @mock.patch('github_watcher.commands.config.get_config')
+    def test_main_with_runtime_error(self, get_config, _input, get_project_metadata, display_configuration, should_stop):
+        get_project_metadata.return_value = ('username', 'project', 'filepath')
+        should_stop.return_value = True
+        get_config.side_effect = RuntimeError
+
+        args = mock.MagicMock()
+        github_url = 'http://github.com'
+        args.github_url = github_url
+        args.user = 'akellehe'
+        args.repo = 'github-watcher'
+        args.filepath = '/'
+        args.start = 0
+        args.end = 100
+        parser = mock.MagicMock()
+        parser.parse_args.return_value = args
+
+        tmpfile = tempfile.NamedTemporaryFile()
+        tmpfile.write(bytes('', 'utf8'))
+        tmpfile.flush()
+        with mock.patch('github_watcher.settings.WATCHER_CONFIG', tmpfile.name):
+            with mock.patch('github_watcher.commands.config.input') as inp:
+                inp.return_value = ''
+                config.main(parser)
+
+        get_config.assert_any_call(parser)
+        get_project_metadata.assert_called()
+        display_configuration.assert_any_call({'github_api_base_url': 'https://api.github.com', 'username': {'project': {'filepath': [[0, 10000000]]}}})
+
+    @mock.patch('github_watcher.commands.config.print')
+    def test_display_configuration(self, _print):
+        config.display_configuration({'my': 'configuration'})
+        _print.assert_any_call("Updated configuration:")
+
+    def test_get_api_base_url(self):
+        conf = {'github_api_base_url': 'my base url'}
+        base_url = config.get_api_base_url(conf)
+        self.assertEqual(base_url, 'my base url')
+
+        with mock.patch('github_watcher.commands.config.input') as _input:
+            conf = {'github_api_base_url': None}
+            _input.return_value = 'second base url'
+            base_url = config.get_api_base_url(conf)
+            self.assertEqual(base_url, 'second base url')
+
+        with mock.patch('github_watcher.commands.config.input') as _input:
+            conf = {'github_api_base_url': None}
+            _input.return_value = None
+            base_url = config.get_api_base_url(conf)
+
+        self.assertEqual(base_url, 'https://api.github.com')
+

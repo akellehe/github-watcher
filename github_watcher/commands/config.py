@@ -107,6 +107,7 @@ def get_api_base_url(config):
     base_url = config.get('github_api_base_url')
     if base_url:
         return base_url
+    print("Getting input for apii base url")
     base_url = input("What is the base API url for your github site? (api.github.com)\n>> ")
     if base_url:
         return base_url
@@ -144,4 +145,3 @@ def main(parser):
             config_fp.write(yaml.dump(config))
     if 'github_api_secret_token' not in config:
         print("You will need to add your `github_api_secret_token` to {}".format(settings.WATCHER_CONFIG))
-

@@ -32,6 +32,11 @@ def raise_value_error(parser, parameter_name):
 
 
 @assert_string
-def read_access_token():
+def read_access_token(conf=None):
+    if not conf:
+        conf = {}
+    token = conf.get('github_api_secret_token')
+    if token:
+        return token
     with open(settings.WATCHER_CONFIG, 'rb') as watcher_config:
         return yaml.load(watcher_config.read().decode('utf-8').strip()).get('github_api_secret_token')
