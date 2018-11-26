@@ -26,11 +26,6 @@ def assert_string(f):
     return _
 
 
-def raise_value_error(parser, parameter_name):
-    parser.print_help()
-    raise ValueError("--{} is required for the check action".format(parameter_name))
-
-
 @assert_string
 def read_access_token(conf=None):
     if not conf:

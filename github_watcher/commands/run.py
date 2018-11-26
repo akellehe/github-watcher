@@ -27,7 +27,7 @@ def is_watched_directory(conf, user, repo, hunk_path):
     if not paths:
         return False
     for path in paths:
-        if hunk_path.startswith(path):
+        if path.endswith('/') and hunk_path.startswith(path):
             return True
     return False
 
@@ -40,7 +40,6 @@ def alert(file, range, pr_link):
 
 
 def are_watched_lines(watchpaths, filepath, start, end):
-    print('watch paths (should be just from files)', watchpaths)
     if filepath not in watchpaths:
         return False
     if end < start:
