@@ -12,10 +12,10 @@ dependencies = [
     'PyGithub==1.43',
 ]
 
-os = platform.platform()
-if os == 'Darwin':
+SYSTEM = platform.system()
+if SYSTEM == 'Darwin':
     dependencies.append('pync==2.0.3')
-elif os == 'Linux':
+elif SYSTEM == 'Linux':
     dependencies.append('notify2==0.3.1')
 
 setup(name='github_watcher',
