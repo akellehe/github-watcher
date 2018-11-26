@@ -160,3 +160,6 @@ For Developers
 .. automodule:: github_watcher.commands.run
    :members:
 
+.. automodule:: github_watcher.commands.config
+   :members:
+

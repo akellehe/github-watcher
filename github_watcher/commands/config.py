@@ -1,10 +1,139 @@
+"""
+The Config Command Module
+-------------------------
+
+This module defines configuration data structures and supporting business logic. For the sake of brevity, a complete
+example configuration is
+
+.. code-block:: yaml
+
+    ---
+    akellehe:
+        github_watcher:
+            paths:
+                docs/: <null>,
+                github_watcher/settings.py:
+                    - [0, 1]
+                    - [4, 5]
+            base_url: 'https://api.gitub.com'
+            token: '*****'
+            regexes:
+                - foo
+                - bar
+
+{'akellehe': {
+    'github_watcher': {
+        'paths': {
+            'docs/': '<null>,',
+            'github_watcher/settings.py': [[0, 1], [4, 5]]
+        },
+        'base_url': 'https://api.gitub.com',
+        'token': '*****',
+        'regexes': ['foo', 'bar']
+        }
+    }
+}
+
+
+If the configuration above doesn't answer your questions, more explanation is below.
+
+Configurations are defined _per user_ (account) being watched. The `user` is the "top-level" configuration. Each user
+can have many repositories.
+
+The parameters in a repository are
+
++-----------+-----------+----------------------------------------------------------------------------------------------+
+| parameter | type      | description                                                                                  |
++===========+===========+==============================================================================================+
+| name      | str       | The name of the repository to watch. e.g. github_watcher                                     |
++-----------+-----------+----------------------------------------------------------------------------------------------+
+| paths     | Dict      | Relative file/directory paths (from the root of the project) are the keys. Lists of lists    |
+|           |           | containing line ranges are the value. If you pass a directory, you can just pass `null` as   |
+|           |           | the line ranges.                                                                             |
++-----------+-----------+----------------------------------------------------------------------------------------------+
+| regexes   | List[str] | A list of regexes for which to scan every pull request.                                      |
++-----------+-----------+----------------------------------------------------------------------------------------------+
+| token     | str       | Your secret user token that grants `User` and `Repo` privileges on the target repository.    |
++-----------+-----------+----------------------------------------------------------------------------------------------+
+| base_url  | str       | The base URL for the target github API. Defaults to https://api.gitub.com                    |
++-----------+-----------+----------------------------------------------------------------------------------------------+
+
+"""
+
+from typing import List, Dict
 import collections
-import json
 import logging
 
 import yaml
 
 import github_watcher.settings as settings
+
+
+class Range:
+
+    def __init__(self, start: float=float('-inf'), stop: float=float('inf')):
+        self.start = start
+        self.stop = stop
+
+
+class Path:
+
+    def __init__(self, path: str, ranges: List[Range]):
+        self.path = path
+        self.ranges = ranges
+
+
+class Repo:
+
+    def __init__(self, name: str, paths: List[Path], regexes: List[str],
+                 token: str, base_url: str):
+        self.name = name
+        self.paths = paths
+        self.regexes = regexes
+        self.token = token
+        self.base_url = base_url
+
+    @classmethod
+    def from_yml(cls, name, yml):
+        paths = [
+            Path(path=path,
+                 ranges=[Range(start=r[0], stop=r[1])
+                         for r in ranges if r] if ranges else [])
+            for path, ranges in yml.get('paths', {}).items()]
+
+        return Repo(
+            name=name,
+            paths=paths,
+            base_url=yml.get('base_url', 'https://api.github.com'),
+            token=yml.get('token'),
+            regexes=yml.get('regexes')
+        )
+
+
+class User:
+
+    def __init__(self, name: str, repos: List[Repo]):
+        self.name = name
+        self.repos = repos
+
+    @classmethod
+    def from_yml(cls, name, yml):
+        return User(
+            name=name,
+            repos=[Repo.from_yml(name, repo) for name, repo in yml.items()]
+        )
+
+
+class Configuration:
+
+    def __init__(self, users: List[User]):
+        self.users = users
+
+    @classmethod
+    def from_yml(self, yml):
+        return Configuration(
+            users=[User.from_yml(name, user_conf) for name, user_conf in yml.items()]
+        )
 
 
 def nonempty_watch_path(args):
@@ -46,11 +175,8 @@ def get_file_config():
 
 def get_config(parser):
     conf = {}
-    logging.info("get_config called.")
     cli_config = get_cli_config(parser)
-    logging.info("Client config %s", json.dumps(cli_config))
     file_config = get_file_config()
-    logging.info("File config %s", json.dumps(file_config))
     if not cli_config and not file_config:
         raise RuntimeError("No configuration found.")
 
