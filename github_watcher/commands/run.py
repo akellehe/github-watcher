@@ -10,6 +10,7 @@ It also manages alerting on those files across Linux and Darwin systems.
 
 """
 from typing import Dict, Tuple
+import re
 import os
 import logging
 import subprocess
@@ -68,6 +69,23 @@ def is_watched_directory(conf: Dict, user: str, repo: str, hunk_path: str) -> bo
     return False
 
 
+def contains_watched_regex(conf: Dict, blob: str) -> bool:
+    """
+    Searches a blob of text for a match to the regexes configured as the `watched_regexes` attribute of `conf`.
+
+    :param dict conf: A github-watcher configuration. If it contains `watched_regexes` we'll check those here.
+    :param str blob: A blob of text to check for the regex.
+    :rtype: bool
+    :return: True if `blob` contains one of the configured regexes.
+    """
+    lines = blob.splitlines()
+    for regex in conf.get('watched_regexes', []):
+        for line in lines:
+            if re.search(regex, line):
+                return True
+    return False
+
+
 def alert(file: str, range: Tuple[int, int], pr_link: str) -> None:
     """
     Alerts that a file has been changed over range `range`. Also provides a link as supported by the target system.
@@ -112,12 +130,15 @@ def are_watched_lines(watchpaths, filepath, start, end):
     return True
 
 
-def alert_if_watched_changes(conf, user, repo, patched_file, link, source_or_target='source'):
+def alert_if_watched_changes(conf, user, repo, patched_file, link, diffstring, source_or_target='source'):
     filepath = getattr(patched_file, source_or_target + '_file')
     if filepath.startswith('a/') or filepath.startswith('b/'):
         filepath = filepath[2:]
 
-    if is_watched_directory(conf, user, repo, filepath) and not already_alerted(link):
+    if already_alerted(link):
+        return False
+
+    if is_watched_directory(conf, user, repo, filepath) or contains_watched_regex(conf, diffstring):
         alert(filepath, '', link)
         mark_as_alerted(link)
         return True
@@ -128,9 +149,8 @@ def alert_if_watched_changes(conf, user, repo, patched_file, link, source_or_tar
             offset = getattr(hunk, source_or_target + '_length')
             end = start + offset
             if are_watched_lines(conf.get(user, {}).get(repo, {}), filepath, start, end):
-                if not already_alerted(link):
-                    alert(filepath, (start, end), link)
-                    mark_as_alerted(link)
+                alert(filepath, (start, end), link)
+                mark_as_alerted(link)
                 return True
     return False
 
@@ -161,24 +181,31 @@ def find_changes(conf):
         if not isinstance(repo_watchpaths, dict):
             continue  # Not all configs are watchpaths
         for repo in repo_watchpaths.keys():
-            open_prs = git.open_pull_requests(base_url, access_token, user, repo)
+            logging.info("Searching for pull requests in repo %s...", repo)
+            open_prs = [pr for pr in git.open_pull_requests(base_url, access_token, user, repo)]
+            logging.info("Found %s pull requests in %s", len(open_prs), repo)
             for open_pr in open_prs:
                 link = open_pr.html_url
+                logging.info("Checking link %s for overlaps in watched files...", link)
                 try:
-                    patchset = unidiff.PatchSet.from_string(
-                        git.diff(base_url, access_token, open_pr))
+                    diffstring = git.diff(base_url, access_token, open_pr)
+                    patchset = unidiff.PatchSet.from_string(diffstring)
                 except git.Noop:
                     continue
                 for patched_file in patchset:
                     if alert_if_watched_changes(
-                            conf, user, repo, patched_file, link, 'source'):
+                            conf, user, repo, patched_file, link, diffstring, 'source'):
                         continue
-                    alert_if_watched_changes(
-                        conf, user, repo, patched_file, link, 'target')
+                    if alert_if_watched_changes(
+                        conf, user, repo, patched_file, link, diffstring, 'target'):
+                        continue
+
 
 
 def main(parser):
     conf = config.get_config(parser)
     while True:
+        logging.info("Finding changes...")
         find_changes(conf)
+        logging.info("Sleeping...")
         time.sleep(60 * 10) # 10 minutes

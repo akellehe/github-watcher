@@ -150,6 +150,7 @@ class TestRun(unittest.TestCase):
             'github-watcher',
             patched_file,
             'my link',
+            'diffstring',
             'source'
         ))
 
@@ -180,11 +181,86 @@ class TestRun(unittest.TestCase):
             'github-watcher',
             patched_file,
             'my link',
+            'my diffstring',
             'source'
         ))
         alert.assert_any_call('foo/bar/pants.py', (0, 10), 'my link')
 
-    def test_alert_if_watched_changes(self):
+    def test_contains_watched_regex(self):
+        conf = {
+            'watched_regexes': ['foo']
+        }
+        self.assertTrue(run.contains_watched_regex(conf, 'my sentence contains foo'))
+        self.assertFalse(run.contains_watched_regex(conf, 'my sentence does not contain it'))
+
+
+    @mock.patch('github_watcher.commands.run.already_alerted')
+    def test_alert_if_watched_changes_for_regex(self, already_alerted):
+        already_alerted.return_value = True
+        hunk_1 = mock.MagicMock()
+        hunk_2 = mock.MagicMock()
+        hunk_1.source_start = 0
+        hunk_1.source_length = 10
+        hunk_2.source_start = 40
+        hunk_2.source_length = 10
+        patched_file = mock.MagicMock()
+        patched_file.source_file = 'a/foo/bar/pants.py'
+        patched_file.target_file = 'b/foo/bar/pants.py'
+        patched_file.__iter__.return_value = [hunk_1, hunk_2]
+        self.assertFalse(run.alert_if_watched_changes(
+            {
+                'akellehe': {
+                    'github-watcher': {
+                        'foo/bar/pants.py': [[0, 5]],
+                        'baz/biz/goat.py': [[10, 20]]
+                    }
+                },
+            },
+            'akellehe',
+            'github-watcher',
+            patched_file,
+            'my link',
+            'my diffstring'
+            'source'
+
+        ))
+        already_alerted.assert_any_call('my link')
+
+
+    @mock.patch('github_watcher.commands.run.already_alerted')
+    def test_alert_if_already_alerted(self, already_alerted):
+        already_alerted.return_value = True
+        hunk_1 = mock.MagicMock()
+        hunk_2 = mock.MagicMock()
+        hunk_1.source_start = 0
+        hunk_1.source_length = 10
+        hunk_2.source_start = 40
+        hunk_2.source_length = 10
+        patched_file = mock.MagicMock()
+        patched_file.source_file = 'a/foo/bar/pants.py'
+        patched_file.target_file = 'b/foo/bar/pants.py'
+        patched_file.__iter__.return_value = [hunk_1, hunk_2]
+        self.assertFalse(run.alert_if_watched_changes(
+            {
+                'akellehe': {
+                    'github-watcher': {
+                        'foo/bar/pants.py': [[0, 5]],
+                        'baz/biz/goat.py': [[10, 20]]
+                    }
+                },
+            },
+            'akellehe',
+            'github-watcher',
+            patched_file,
+            'my link',
+            'source'
+
+        ))
+        already_alerted.assert_any_call('my link')
+
+    @mock.patch('github_watcher.commands.run.already_alerted')
+    def test_alert_if_watched_changes(self, already_alerted):
+        already_alerted.return_value = False
         hunk_1 = mock.MagicMock()
         hunk_2 = mock.MagicMock()
         hunk_1.source_start = 0
@@ -274,9 +350,7 @@ class TestRun(unittest.TestCase):
         open_prs = [mock.MagicMock()]
         open_prs[0].html_url = 'my html url'
         open_pull_requests.return_value = open_prs
-        diff = mock.MagicMock()
-        diff.return_value = 'my diff'
-        git_diff.return_value = diff
+        git_diff.return_value = 'my diff'
         patched_file_1 = mock.MagicMock()
         patch_set = [patched_file_1]
         patch_set_from_string.return_value = patch_set
@@ -293,10 +367,10 @@ class TestRun(unittest.TestCase):
         run.find_changes(conf)
         open_pull_requests.assert_any_call(
             'my base url', '*****', 'akellehe', 'github-watcher')
-        patch_set_from_string.assert_any_call(diff)
+        patch_set_from_string.assert_any_call('my diff')
         git_diff.assert_any_call('my base url', '*****', open_prs[0])
         alert_if_watched_changes.assert_any_call(
-            conf, 'akellehe', 'github-watcher', patched_file_1, 'my html url', 'source'
+            conf, 'akellehe', 'github-watcher', patched_file_1, 'my html url', 'my diff', 'source'
         )
 
     @mock.patch('github_watcher.commands.run.alert_if_watched_changes')
@@ -309,9 +383,7 @@ class TestRun(unittest.TestCase):
         open_prs = [mock.MagicMock()]
         open_prs[0].html_url = 'my html url'
         open_pull_requests.return_value = open_prs
-        diff = mock.MagicMock()
-        diff.return_value = 'my diff'
-        git_diff.return_value = diff
+        git_diff.return_value = 'my diff'
         patched_file_1 = mock.MagicMock()
         patch_set = [patched_file_1]
         patch_set_from_string.return_value = patch_set
@@ -328,10 +400,10 @@ class TestRun(unittest.TestCase):
         run.find_changes(conf)
         open_pull_requests.assert_any_call(
             'my base url', '*****', 'akellehe', 'github-watcher')
-        patch_set_from_string.assert_any_call(diff)
+        patch_set_from_string.assert_any_call('my diff')
         git_diff.assert_any_call('my base url', '*****', open_prs[0])
         alert_if_watched_changes.assert_any_call(
-            conf, 'akellehe', 'github-watcher', patched_file_1, 'my html url', 'target'
+            conf, 'akellehe', 'github-watcher', patched_file_1, 'my html url', 'my diff', 'target'
         )
 
     @mock.patch('github_watcher.commands.run.alert_if_watched_changes')

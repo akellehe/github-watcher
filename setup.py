@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+import sys
+if sys.version_info[0] < 3:
+    raise Exception("This package only supports Python3+")
+
 import platform
 import os
 try:
@@ -9,7 +13,7 @@ except ImportError:
 dependencies = [
     'unidiff==0.5.4',
     'requests==2.20.0',
-    'PyYAML==3.11',
+    'PyYAML==3.13',
     'PyGithub==1.43',
 ]
 
@@ -22,7 +26,7 @@ elif SYSTEM == 'Linux' and not os.environ.get('TRAVIS'):
 
 
 setup(name='github_watcher',
-        version='3.6',
+        version='3.7',
         description='Monitors files/directories on github and alerts you when someone submits a PR with changes',
         author='Andrew Kelleher',
         author_email='keats.kelleher@gmail.com',
