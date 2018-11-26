@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import platform
+import os
 try:
     from disutils.core import setup, find_packages
 except ImportError:
@@ -15,7 +16,7 @@ dependencies = [
 SYSTEM = platform.system()
 if SYSTEM == 'Darwin':
     dependencies.append('pync==2.0.3')
-elif SYSTEM == 'Linux':
+elif SYSTEM == 'Linux' and not os.environ['TRAVIS']:
     dependencies.append('dbus-python==1.2.8')
     dependencies.append('notify2==0.3.1')
 

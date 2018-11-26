@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 import logging
 import subprocess
 import time
@@ -13,7 +14,7 @@ import github_watcher.services.git as git
 SYSTEM = platform.system()
 if SYSTEM == 'Darwin':
     from pync import Notifier
-if SYSTEM == 'Linux':
+if SYSTEM == 'Linux' and os.environ['TRAVIS'] != 'true':
     import notify2
 
 
