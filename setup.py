@@ -16,7 +16,9 @@ SYSTEM = platform.system()
 if SYSTEM == 'Darwin':
     dependencies.append('pync==2.0.3')
 elif SYSTEM == 'Linux':
+    dependencies.append('dbus-python==1.2.8')
     dependencies.append('notify2==0.3.1')
+
 
 setup(name='github_watcher',
         version='3.5',
