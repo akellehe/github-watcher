@@ -1,4 +1,5 @@
 import tempfile
+import platform
 import unittest
 import unittest.mock as mock
 
@@ -68,15 +69,27 @@ class TestRun(unittest.TestCase):
         self.assertFalse(target)
         self.assertFalse(run.is_watched_directory({}, 'akellehe', 'github-watcher', '/foo/bar'))
 
+    @unittest.skipIf(platform.system() != 'Darwin', "This test only for OSX")
     @mock.patch('github_watcher.commands.run.logging.info')
-    @mock.patch('github_watcher.commands.run.Notifier.notify')
     @mock.patch('github_watcher.commands.run.subprocess.call')
-    def test_alert(self, subprocess_call, notify, logging_info):
+    def test_alert_osx(self, subprocess_call, logging_info):
         msg = 'Found a PR effecting myfile myrange'
-        run.alert('myfile', 'myrange', 'my_pr_link')
+        with mock.patch('github_watcher.commands.run.Notifier.notify') as notify:
+            run.alert('myfile', 'myrange', 'my_pr_link')
+            notify.assert_any_call(msg, title='Github Watcher', open='my_pr_link')
         logging_info.assert_any_call(msg)
-        notify.assert_any_call(msg, title='Github Watcher', open='my_pr_link')
         subprocess_call.assert_any_call('say ' + msg, shell=True)
+
+    @unittest.skipIf(platform.system() != 'Linux', "This test only for Linux")
+    @mock.patch('github_watcher.commands.run.logging.info')
+    def test_alert_linux(self, logging_info):
+        msg = 'Found a PR effecting myfile myrange'
+        with mock.patch('github_watcher.commands.run.notify2.init') as _init:
+            with mock.patch('github_watcher.commands.run.notify2.Notification') as _Note:
+                run.alert('myfile', 'myrange', 'my_pr_link')
+                _init.assert_any_call(app_name='github-watcher')
+                _Note.assert_any_call('Github Watcher', messages=msg)
+        logging_info.assert_any_call(msg)
 
     def test_are_watched_lines(self):
         self.assertTrue(run.are_watched_lines(

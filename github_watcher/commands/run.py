@@ -3,13 +3,18 @@ import logging
 import subprocess
 import time
 import platform
-
 import unidiff
 
 import github_watcher.settings as settings
 import github_watcher.util as util
 import github_watcher.commands.config as config
 import github_watcher.services.git as git
+
+SYSTEM = platform.system()
+if SYSTEM == 'Darwin':
+    from pync import Notifier
+if SYSTEM == 'Linux':
+    import notify2
 
 
 def is_watched_file(conf, user, repo, hunk_path):
@@ -35,14 +40,13 @@ def is_watched_directory(conf, user, repo, hunk_path):
 def alert(file, range, pr_link):
     msg = 'Found a PR effecting {file} {range}'.format(file=file, range=str(range))
     logging.info(msg)
-    if platform == 'Darwin':
-        from pync import Notifier
+    if SYSTEM == 'Darwin':
         subprocess.call('say ' + msg, shell=True)
         Notifier.notify(msg, title='Github Watcher', open=pr_link)
-    elif platform == 'Linux':
-        import notify2
+    elif SYSTEM == 'Linux':
         notify2.init(app_name='github-watcher')
-        note = notify2.Notification(summary='Github Watcher', message=msg)
+        note = notify2.Notification(
+            'Github Watcher', message=msg)
         note.show()
         time.sleep(5)
         note.close()
