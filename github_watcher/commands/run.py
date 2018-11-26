@@ -44,7 +44,7 @@ def alert(file, range, pr_link):
     if SYSTEM == 'Darwin':
         subprocess.call('say ' + msg, shell=True)
         Notifier.notify(msg, title='Github Watcher', open=pr_link)
-    elif SYSTEM == 'Linux':
+    elif SYSTEM == 'Linux' and os.environ['TRAVIS'] != 'true':
         notify2.init(app_name='github-watcher')
         note = notify2.Notification(
             'Github Watcher', message=msg)
