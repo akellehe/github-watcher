@@ -4,3 +4,4 @@ github_watcher.egg-info
 .idea
 .eggs
 .coverage
+docs/build
