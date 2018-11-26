@@ -4,7 +4,7 @@ python:
   - "3.6"
 before_install:
   - sudo apt-get update
-  - sudo apt install -y git virtualenv build-essential python3-dev libdbus-glib-1-dev libgirepository1.0-dev libcairo2-dev
+  - sudo apt install -y git build-essential libdbus-glib-1-dev libgirepository1.0-dev libcairo2-dev
 install: 
   - pip install .
 
