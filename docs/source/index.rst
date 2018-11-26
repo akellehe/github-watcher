@@ -12,6 +12,10 @@ Welcome to github_watcher's documentation!
 
 
 
+.. automodule:: github_watcher.commands.run
+   :members:
+
+
 Indices and tables
 ==================
 

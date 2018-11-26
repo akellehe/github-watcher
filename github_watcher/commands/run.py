@@ -1,4 +1,15 @@
 #!/usr/bin/env python
+"""
+The Run Command Module
+----------------------
+
+This module contains the business logic for the `watch` functionality. It interprets configurations and evaluates files
+against those configurations.
+
+It also manages alerting on those files across Linux and Darwin systems.
+
+"""
+from typing import Dict, Tuple
 import os
 import logging
 import subprocess
@@ -18,7 +29,16 @@ if SYSTEM == 'Linux' and os.environ.get('TRAVIS') != 'true':
     import notify2
 
 
-def is_watched_file(conf, user, repo, hunk_path):
+def is_watched_file(conf: Dict, user: str, repo: str, hunk_path: str) -> bool:
+    """
+    Determines whether or not the file at `user/repo/hunk_path` is watched based on the configuration passed as `conf`.
+
+    :param dict conf: The configuration under which to assess the file.
+    :param str user: The owner of the repository, `repo`, in which the file resides.
+    :param str repo: The repo owned by `owner`, in which this file resides.
+    :param str hunk_path: The relative path to the file to evaluate against `conf` in order to determine whether or not it is watched.
+    :return: A boolean value specifying whether or not `hunk_path` is watched under `conf`.
+    """
     paths = conf.get(user, {}).get(repo, [])
     if not paths:
         return False
@@ -28,7 +48,17 @@ def is_watched_file(conf, user, repo, hunk_path):
     return False
 
 
-def is_watched_directory(conf, user, repo, hunk_path):
+def is_watched_directory(conf: Dict, user: str, repo: str, hunk_path: str) -> bool:
+    """
+    Determines whether or not the file at `user/repo/hunk_path` is watched based on whether or not it lies in a
+    directory specified by `conf`
+
+    :param dict conf: The configuration under which to assess the file.
+    :param str user: The owner of the repository, `repo`, in which the file resides.
+    :param str repo: The repo owned by `owner`, in which this file resides.
+    :param str hunk_path: The relative path to the file to evaluate against `conf` in order to determine whether or not it is watched.
+    :return: A boolean value specifying whether or not `hunk_path` is watched under `conf`.
+    """
     paths = conf.get(user, {}).get(repo, [])
     if not paths:
         return False
@@ -38,7 +68,15 @@ def is_watched_directory(conf, user, repo, hunk_path):
     return False
 
 
-def alert(file, range, pr_link):
+def alert(file: str, range: Tuple[int, int], pr_link: str) -> None:
+    """
+    Alerts that a file has been changed over range `range`. Also provides a link as supported by the target system.
+
+    :param str file: The name of the file that has been changed.
+    :param tuple range: The range over which the change coincides with the watcher configuration.
+    :param str pr_link: A link to the pull request containing the change.
+    :return: None
+    """
     msg = 'Found a PR effecting {file} {range}'.format(file=file, range=str(range))
     logging.info(msg)
     if SYSTEM == 'Darwin':
@@ -53,8 +91,15 @@ def alert(file, range, pr_link):
         note.close()
 
 
-
 def are_watched_lines(watchpaths, filepath, start, end):
+    """
+
+    :param watchpaths:
+    :param filepath:
+    :param start:
+    :param end:
+    :return:
+    """
     if filepath not in watchpaths:
         return False
     if end < start:
