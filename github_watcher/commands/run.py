@@ -2,9 +2,9 @@
 import logging
 import subprocess
 import time
+import platform
 
 import unidiff
-from pync import Notifier
 
 import github_watcher.settings as settings
 import github_watcher.util as util
@@ -35,8 +35,18 @@ def is_watched_directory(conf, user, repo, hunk_path):
 def alert(file, range, pr_link):
     msg = 'Found a PR effecting {file} {range}'.format(file=file, range=str(range))
     logging.info(msg)
-    subprocess.call('say ' + msg, shell=True)
-    Notifier.notify(msg, title='Github Watcher', open=pr_link)
+    if platform == 'Darwin':
+        from pync import Notifier
+        subprocess.call('say ' + msg, shell=True)
+        Notifier.notify(msg, title='Github Watcher', open=pr_link)
+    elif platform == 'Linux':
+        import notify2
+        notify2.init(app_name='github-watcher')
+        note = notify2.Notification(summary='Github Watcher', message=msg)
+        note.show()
+        time.sleep(5)
+        note.close()
+
 
 
 def are_watched_lines(watchpaths, filepath, start, end):

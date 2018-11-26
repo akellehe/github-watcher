@@ -1,10 +1,22 @@
 #!/usr/bin/env python
-
+import platform
 try:
     from disutils.core import setup, find_packages
 except ImportError:
     from setuptools import setup, find_packages
 
+dependencies = [
+    'unidiff==0.5.4',
+    'requests==2.20.0',
+    'PyYAML==3.11',
+    'PyGithub==1.43',
+]
+
+os = platform.platform()
+if os == 'Darwin':
+    dependencies.append('pync==2.0.3')
+elif os == 'Linux':
+    dependencies.append('notify2==0.3.1')
 
 setup(name='github_watcher',
         version='3.5',
@@ -14,10 +26,4 @@ setup(name='github_watcher',
         packages=find_packages(),
         scripts=['github_watcher/github-watcher'],
         url='https://github.com/akellehe/github-watcher',
-        install_requires=[
-           'unidiff==0.5.4',
-           'requests==2.20.0',
-           'pync==2.0.3',
-           'PyYAML==3.11',
-           'PyGithub==1.43',
-        ])
+        install_requires=dependencies)
