@@ -16,7 +16,7 @@ dependencies = [
 SYSTEM = platform.system()
 if SYSTEM == 'Darwin':
     dependencies.append('pync==2.0.3')
-elif SYSTEM == 'Linux' and not os.environ['TRAVIS']:
+elif SYSTEM == 'Linux' and not os.environ.get('TRAVIS'):
     dependencies.append('dbus-python==1.2.8')
     dependencies.append('notify2==0.3.1')
 

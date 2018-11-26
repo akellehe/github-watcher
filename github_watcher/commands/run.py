@@ -14,7 +14,7 @@ import github_watcher.services.git as git
 SYSTEM = platform.system()
 if SYSTEM == 'Darwin':
     from pync import Notifier
-if SYSTEM == 'Linux' and os.environ['TRAVIS'] != 'true':
+if SYSTEM == 'Linux' and os.environ.get('TRAVIS') != 'true':
     import notify2
 
 
@@ -44,7 +44,7 @@ def alert(file, range, pr_link):
     if SYSTEM == 'Darwin':
         subprocess.call('say ' + msg, shell=True)
         Notifier.notify(msg, title='Github Watcher', open=pr_link)
-    elif SYSTEM == 'Linux' and os.environ['TRAVIS'] != 'true':
+    elif SYSTEM == 'Linux' and os.environ.get('TRAVIS') != 'true':
         notify2.init(app_name='github-watcher')
         note = notify2.Notification(
             'Github Watcher', message=msg)

@@ -1,4 +1,5 @@
 import tempfile
+import os
 import platform
 import unittest
 import unittest.mock as mock
@@ -81,7 +82,7 @@ class TestRun(unittest.TestCase):
         subprocess_call.assert_any_call('say ' + msg, shell=True)
 
     @unittest.skipIf(platform.system() != 'Linux', "This test only for Linux")
-    @unittest.skipIf(os.environ['TRAVIS'] == 'true', "Skip during CI runs.")
+    @unittest.skipIf(os.environ.get('TRAVIS') == 'true', "Skip during CI runs.")
     @mock.patch('github_watcher.commands.run.logging.info')
     def test_alert_linux(self, logging_info):
         msg = 'Found a PR effecting myfile myrange'
