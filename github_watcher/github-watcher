@@ -42,11 +42,10 @@ def parse_cli():
     parser.add_argument('--github-url', dest='github_url', default=None,
                         help='Supply a non-default github url where your enterprise installation can be found. It ' +
                              'should probably end with /api/v3. Defaults to the api.github.com API')
-    parser.add_argument('--config', dest='config_file',
-                        default=os.path.join(os.path.expanduser('~'), github_watcher.settings.WATCHER_CONFIG),
-                        help='Specify a path to your github watcher config file.')
-    parser.add_argument('--debug', dest='debug', default=False, action='store_true',
-                        help="Pass this flag to include debug output. DANGER: This may print your access token.")
+    parser.add_argument('--regex', dest='regex', default=None,
+                        help='Pass a regular expression. If a match if found in either a source or a destination ' +
+                             'file you will be alerted regardless of whether or not the file appears in your ' +
+                             'configuration')
     return parser, parser.parse_args()
 
 
@@ -72,7 +71,7 @@ def daemonize(parser):
 
 def main():
     parser, args = parse_cli()
-    if args.debug or args.verbose:
+    if args.verbose:
         logging.basicConfig(level=logging.INFO, format="%(levelname)s %(filename)s %(lineno)d: %(message)s")
     if args.action == 'run':
         daemonize(parser)

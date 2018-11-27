@@ -39,6 +39,7 @@ class TestConfig(unittest.TestCase):
         args.filepath = '/'
         args.start = 0
         args.end = 100
+        args.regex = 'foobar'
         parser = mock.MagicMock()
         parser.parse_args.return_value = args
         observed_config = config.get_cli_config(parser)
@@ -48,7 +49,8 @@ class TestConfig(unittest.TestCase):
                 'github-watcher': {
                     '/': [[0, 100]]
                 }
-            }
+            },
+            'watched_regexes': ['foobar']
         })
 
     def test_get_file_config(self):
@@ -60,6 +62,23 @@ class TestConfig(unittest.TestCase):
                     '/': [[0, 100]]
                 }
             }
+        }
+        tmpfile.write(bytes(yaml.dump(expected), 'utf8'))
+        tmpfile.flush()
+        with mock.patch('github_watcher.settings.WATCHER_CONFIG', tmpfile.name):
+            observed = config.get_file_config()
+            self.assertEqual(expected, observed)
+
+    def test_get_file_config_with_regexes(self):
+        tmpfile = tempfile.NamedTemporaryFile()
+        expected = {
+            'github_api_base_url': 'https://github.com',
+            'akellehe': {
+                'github-watcher': {
+                    '/': [[0, 100]]
+                }
+            },
+            'watched_regexes': ['foo', 'bar', 'pants']
         }
         tmpfile.write(bytes(yaml.dump(expected), 'utf8'))
         tmpfile.flush()
@@ -321,10 +340,9 @@ class TestConfig(unittest.TestCase):
             with mock.patch('github_watcher.commands.config.input') as inp:
                 inp.return_value = ''
                 config.main(parser)
-
-        get_config.assert_any_call(parser)
-        get_project_metadata.assert_called()
-        display_configuration.assert_any_call({'github_api_base_url': 'https://api.github.com', 'username': {'project': {'filepath': [[0, 10000000]]}}})
+                get_config.assert_any_call(parser)
+                get_project_metadata.assert_called()
+                display_configuration.assert_any_call({'github_api_base_url': 'https://api.github.com', 'username': {'project': {'filepath': [[0, 10000000]]}}})
 
     @mock.patch('github_watcher.commands.config.print')
     def test_display_configuration(self, _print):

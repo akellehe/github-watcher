@@ -28,6 +28,8 @@ def get_cli_config(parser):
                 [args.start, args.end])
     if args.github_url:
         cli_config['github_api_base_url'] = args.github_url
+    if args.regex:
+        cli_config['watched_regexes'] = [args.regex]
     return cli_config
 
 
@@ -107,7 +109,6 @@ def get_api_base_url(config):
     base_url = config.get('github_api_base_url')
     if base_url:
         return base_url
-    print("Getting input for apii base url")
     base_url = input("What is the base API url for your github site? (api.github.com)\n>> ")
     if base_url:
         return base_url
@@ -119,6 +120,7 @@ def main(parser):
         config = get_config(parser)
     except RuntimeError:
         config = {}
+
     while True:
         username, project, filepath = get_project_metadata()
         line_ranges = None
