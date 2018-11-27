@@ -30,6 +30,8 @@ def get_cli_config(parser):
         cli_config['github_api_base_url'] = args.github_url
     if args.regex:
         cli_config['watched_regexes'] = [args.regex]
+    if args.silent:
+        cli_config['silent'] = True
     return cli_config
 
 

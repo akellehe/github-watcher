@@ -86,19 +86,21 @@ def contains_watched_regex(conf: Dict, blob: str) -> bool:
     return False
 
 
-def alert(file: str, range: Tuple[int, int], pr_link: str) -> None:
+def alert(file: str, range: Tuple[int, int], pr_link: str, silent=False) -> None:
     """
     Alerts that a file has been changed over range `range`. Also provides a link as supported by the target system.
 
     :param str file: The name of the file that has been changed.
     :param tuple range: The range over which the change coincides with the watcher configuration.
     :param str pr_link: A link to the pull request containing the change.
+    :param bool silent: Whether or not to silence audio alerts.
     :return: None
     """
     msg = 'Found a PR effecting {file} {range}'.format(file=file, range=str(range))
     logging.info(msg)
     if SYSTEM == 'Darwin':
-        subprocess.call('say ' + msg, shell=True)
+        if not silent:
+            subprocess.call('say ' + msg, shell=True)
         Notifier.notify(msg, title='Github Watcher', open=pr_link)
     elif SYSTEM == 'Linux' and os.environ.get('TRAVIS') != 'true':
         notify2.init(app_name='github-watcher')
@@ -149,7 +151,7 @@ def alert_if_watched_changes(conf, user, repo, patched_file, link, diffstring, s
             offset = getattr(hunk, source_or_target + '_length')
             end = start + offset
             if are_watched_lines(conf.get(user, {}).get(repo, {}), filepath, start, end):
-                alert(filepath, (start, end), link)
+                alert(filepath, (start, end), link, silent=conf.get('silent', False))
                 mark_as_alerted(link)
                 return True
     return False
