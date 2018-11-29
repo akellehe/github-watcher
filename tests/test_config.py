@@ -40,6 +40,7 @@ class TestConfig(unittest.TestCase):
         args.start = 0
         args.end = 100
         args.regex = 'foobar'
+        args.silent = False
         parser = mock.MagicMock()
         parser.parse_args.return_value = args
         observed_config = config.get_cli_config(parser)
