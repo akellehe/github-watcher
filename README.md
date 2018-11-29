@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/akellehe/github-watcher.svg?branch=master)](https://travis-ci.org/akellehe/github-watcher)
+[![Build Status](https://travis-ci.org/akellehe/github-watcher.svg?branch=master)](https://travis-ci.org/akellehe/github-watcher) [![Documentation Status](https://readthedocs.org/projects/github-watcher/badge/?version=latest)](https://github-watcher.readthedocs.io/en/latest/)
 
 github_watcher
 ==============
