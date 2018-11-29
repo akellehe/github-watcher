@@ -1,8 +1,3 @@
-.. github_watcher documentation master file, created by
-   sphinx-quickstart on Mon Nov 26 08:53:51 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 github_watcher
 ==============
 
@@ -119,8 +114,27 @@ You can record your access token in the place you see the asteriks above. After 
 
 Then you can run it!
 
+Configuring Regular Expression Watching
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you're interested in watching for a string that can be matched to a regular expression across _all_ files in a repository; you can add a block of regular expressions.
+
+.. code-block:: yaml
+
+   ---
+   github_api_secret_token: '*****'
+   github_api_base_url: 'https://github.example.com/api/v3'
+   akellehe:
+       github-watcher: 
+           docs/source/index.rst
+               - [38, 40]
+   watched_regexes:
+       - [fF]oo
+
+Now if any pull request submitted to `github_watcher` contains the string "foo" or "Foo" we will get an alert that links to that file.
+
 Running github_watcher
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 To set up `github_watcher` as a daemon, you can just run it like
 
@@ -140,22 +154,9 @@ There are a bunch of other options you can pass. Get a complete listing by passi
 
    github-watcher --help
 
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-
 For Developers
 --------------
 
 .. automodule:: github_watcher.commands.run
    :members:
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
