@@ -46,6 +46,7 @@ def parse_cli():
                         help='Pass a regular expression. If a match if found in either a source or a destination ' +
                              'file you will be alerted regardless of whether or not the file appears in your ' +
                              'configuration')
+    parser.add_argument('--silent', dest='silent', default=False, help='Don\'t make audio alerts where supported.')
     return parser, parser.parse_args()
 
 

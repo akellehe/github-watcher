@@ -184,7 +184,17 @@ class TestRun(unittest.TestCase):
             'my diffstring',
             'source'
         ))
-        alert.assert_any_call('foo/bar/pants.py', (0, 10), 'my link')
+        alert.assert_any_call('foo/bar/pants.py', (0, 10), 'my link', silent=False)
+
+    @unittest.skipIf(platform.system() != 'Darwin', "This test only for OSX")
+    @mock.patch('github_watcher.commands.run.subprocess.call')
+    @mock.patch('github_watcher.commands.run.Notifier.notify')
+    def test_alert_doesnt_make_noise_when_silent(self, notify, _call):
+        run.alert('myfile', (1, 100), 'my pr link', silent=False)
+        _call.assert_any_call('say Found a PR effecting myfile (1, 100)', shell=True)
+        _call.reset_mock()
+        run.alert('myfile2', (10, 1000), 'my pr link2', silent=True)
+        _call.assert_not_called()
 
     def test_contains_watched_regex(self):
         conf = {
