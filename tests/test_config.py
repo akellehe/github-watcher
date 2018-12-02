@@ -368,3 +368,39 @@ class TestConfig(unittest.TestCase):
 
         self.assertEqual(base_url, 'https://api.github.com')
 
+    def test_configuration_model(self):
+        conf = {'akellehe': {
+            'github_watcher': {
+                'paths': {
+                    'docs/': None,
+                    'github_watcher/settings.py': [[0, 1], [4, 5]]
+                },
+                'base_url': 'https://api.gitub.com',
+                'token': '*****',
+                'regexes': ['foo', 'bar']
+            },
+            'github_watcher_2': {
+                'paths': {'docs/': None,
+                          'github_watcher/settings.py': [[0, 1], [4, 5]]},
+                'base_url': 'https://api.gitub.com',
+                'token': '*****',
+                'regexes': ['foo', 'bar']
+            }
+        }}
+        target = config.Configuration.from_yml(conf)
+
+        self.assertEqual(len(target.users), 1)
+        self.assertEqual(target.users[0].name, 'akellehe')
+        self.assertEqual(target.users[0].repos[0].name, 'github_watcher')
+        self.assertEqual(target.users[0].repos[1].name, 'github_watcher_2')
+        self.assertEqual(target.users[0].repos[1].paths[0].path, 'docs/')
+        self.assertEqual(target.users[0].repos[1].paths[0].ranges, [])
+        self.assertEqual(target.users[0].repos[1].paths[1].path, 'github_watcher/settings.py')
+        self.assertEqual(target.users[0].repos[1].paths[1].ranges[0].start, 0)
+        self.assertEqual(target.users[0].repos[1].paths[1].ranges[0].stop, 1)
+        self.assertEqual(target.users[0].repos[1].paths[1].ranges[1].start, 4)
+        self.assertEqual(target.users[0].repos[1].paths[1].ranges[1].stop, 5)
+
+
+if __name__ == '__main__':
+    unittest.main()
