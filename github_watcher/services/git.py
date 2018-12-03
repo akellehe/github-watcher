@@ -1,10 +1,44 @@
 import logging
+import datetime
 
+import github
 from github import Github
 import requests
 
 
 class Noop(Exception): pass
+
+
+def close(entity, dry_run=True):
+    print('would close', type(entity), get_last_updated(entity))
+
+
+def comment(entity, message=None, dry_run=True):
+    if not dry_run:
+        if isinstance(github.PullRequest.PullRequest):
+            logging.info("Create issue comment %s on %s", message, entity)
+            entity.create_issue_comment(message)
+        elif isinstance(github.Branch.Branch):
+            logging.info("Create commit comment %s on %s", message, entity)
+            entity.commit.create_comment(message)
+
+
+def delete(entity, dry_run=True):
+    print('would delete', type(entity), get_last_updated(entity))
+
+
+def get_branches(user, repo):
+    gh = Github(user.token, base_url=user.base_url)
+    repo = gh.get_repo(user.name + '/' + repo.name)
+    return repo.get_branches()
+
+
+def get_last_updated(entity=None):
+    if isinstance(entity, github.PullRequest.PullRequest):
+        return pr.updated_at
+    elif isinstance(entity, github.Branch.Branch):
+        last_modified_str = entity.commit.stats.last_modified
+        return datetime.datetime.strptime(last_modified_str, "%a, %d %b %Y %H:%M:%S %Z")
 
 
 def open_pull_requests(base_url, access_token, user, repo):
