@@ -1,9 +1,8 @@
 """
-The Config Command Module
+Configuration
 -------------------------
 
-This module defines configuration data structures and supporting business logic. For the sake of brevity, a complete
-example configuration is
+For the sake of brevity, a complete example configuration is
 
 .. code-block:: yaml
 
@@ -24,8 +23,8 @@ example configuration is
 
 If the configuration above doesn't answer your questions, more explanation is below.
 
-Configurations are defined _per user_ (account) being watched. The `user` is the "top-level" configuration. Each user
-can have many repositories.
+Configurations are defined _per user_ (account) being watched. The :py:class:`github_watcher.commands.config.User` is
+the "top-level" configuration. Each user can have many repositories.
 
 The parameters in a repository are
 
