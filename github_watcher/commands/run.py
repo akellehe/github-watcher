@@ -9,7 +9,7 @@ against those configurations.
 It also manages alerting on those files across Linux and Darwin systems.
 
 """
-from typing import Dict, Tuple
+from typing import Tuple
 import re
 import os
 import logging
