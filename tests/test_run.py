@@ -360,6 +360,7 @@ class TestRun(unittest.TestCase):
                           alert_if_watched_changes):
         open_prs = [mock.MagicMock()]
         open_prs[0].html_url = 'my html url'
+        open_prs[0].user.login = 'akellehe'
         open_pull_requests.return_value = open_prs
         git_diff.return_value = 'my diff'
         patched_file_1 = mock.MagicMock()
@@ -383,7 +384,7 @@ class TestRun(unittest.TestCase):
         patch_set_from_string.assert_any_call('my diff')
         git_diff.assert_any_call('my base url', '*****', open_prs[0])
         alert_if_watched_changes.assert_any_call(
-            conf, conf.users[0], conf.users[0].repos[0], patched_file_1, 'my html url', 'my diff', 'source'
+            conf, conf.users[0], conf.users[0].repos[0], patched_file_1, 'my html url', 'my diff', 'source', 'akellehe'
         )
 
     @mock.patch('github_watcher.commands.run.alert_if_watched_changes')
@@ -395,6 +396,7 @@ class TestRun(unittest.TestCase):
         alert_if_watched_changes.side_effect = [False, True]
         open_prs = [mock.MagicMock()]
         open_prs[0].html_url = 'my html url'
+        open_prs[0].user.login = 'akellehe'
         open_pull_requests.return_value = open_prs
         git_diff.return_value = 'my diff'
         patched_file_1 = mock.MagicMock()
@@ -418,7 +420,7 @@ class TestRun(unittest.TestCase):
         patch_set_from_string.assert_any_call('my diff')
         git_diff.assert_any_call('my base url', '*****', open_prs[0])
         alert_if_watched_changes.assert_any_call(
-            conf, conf.users[0], conf.users[0].repos[0], patched_file_1, 'my html url', 'my diff', 'target'
+            conf, conf.users[0], conf.users[0].repos[0], patched_file_1, 'my html url', 'my diff', 'target', 'akellehe'
         )
 
     @mock.patch('github_watcher.commands.run.alert_if_watched_changes')

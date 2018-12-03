@@ -81,6 +81,13 @@ def contains_watched_regex(repo: config.Repo, blob: str) -> bool:
     return False
 
 
+def submitted_by_watched_user(repo: config.Repo, author) -> bool:
+    for username in repo.users:
+        if username == author:
+            return True
+    return False
+
+
 def alert(file: str, range: Tuple[int, int], pr_link: str, silent=False) -> None:
     """
     Alerts that a file has been changed over range `range`. Also provides a link as supported by the target system.
@@ -120,13 +127,18 @@ def are_watched_lines(path: config.Path, start, end):
 
 
 def alert_if_watched_changes(conf: config.Configuration, user: config.User, repo: config.Repo,
-                             patched_file, link, diffstring, source_or_target='source'):
+                             patched_file, link, diffstring, source_or_target='source', author=None):
     filepath = getattr(patched_file, source_or_target + '_file')
     if filepath.startswith('a/') or filepath.startswith('b/'):
         filepath = filepath[2:]
 
     if already_alerted(link):
         return False
+
+    if submitted_by_watched_user(repo, author):
+        alert(filepath, '', link)
+        mark_as_alerted(link)
+        return True
 
     if is_watched_directory(repo, filepath) or contains_watched_regex(repo, diffstring):
         alert(filepath, '', link)
@@ -172,6 +184,7 @@ def find_changes(conf):
             open_prs = [pr for pr in git.open_pull_requests(user.base_url, user.token, user.name, repo.name)]
             logging.info("Found %s pull requests in %s", len(open_prs), repo.name)
             for open_pr in open_prs:
+                author = open_pr.user.login
                 link = open_pr.html_url
                 logging.info("Checking link %s for overlaps in watched files...", link)
                 try:
@@ -181,10 +194,10 @@ def find_changes(conf):
                     continue
                 for patched_file in patchset:
                     if alert_if_watched_changes(
-                            conf, user, repo, patched_file, link, diffstring, 'source'):
+                            conf, user, repo, patched_file, link, diffstring, 'source', author):
                         continue
                     if alert_if_watched_changes(
-                        conf, user, repo, patched_file, link, diffstring, 'target'):
+                        conf, user, repo, patched_file, link, diffstring, 'target', author):
                         continue
 
 

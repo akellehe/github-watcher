@@ -1,4 +1,14 @@
 #!/usr/bin/env python
+long_description = """
+github_watcher is a package for keeping an eye for pull requests that fulfill certain criteria. If you're overseeing some tricky lines of code, you can get an alert and a link to any pull request that modifies those lines.
+
+You can also specify a list of regular expressions for which to watch each pull request. If you get a match in any file (source or destination) in any PR you'll get an alert and a link to it.
+
+You can find more info on the github page. https://github.com/akellehe/github-watcher
+
+"""
+
+
 import sys
 if sys.version_info[0] < 3:
     raise Exception("This package only supports Python3+")
@@ -26,8 +36,9 @@ elif SYSTEM == 'Linux' and not os.environ.get('TRAVIS'):
 
 
 setup(name='github_watcher',
-        version='4.0',
+        version='4.2',
         description='Monitors files/directories on github and alerts you when someone submits a PR with changes',
+        long_description=long_description,
         author='Andrew Kelleher',
         author_email='keats.kelleher@gmail.com',
         packages=find_packages(),
