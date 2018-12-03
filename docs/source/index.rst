@@ -17,34 +17,8 @@ After that it will be added to your `PATH`. To get it configured and running on 
 
 To run through a prompt. It will write a file at `~/.github-watcher.yml`. Feel free to modify that file as your needs change.
 
-Manual Configuration
---------------------
-
-`~/.github-watcher.yml` has a few components.
-
-Adding a Project
-~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: yaml
-
-   ---
-   <github username>:
-       <project name>:
-           <file name to watch> 
-               - [<starting line in that file>, <ending line in that file>]
-               - [<another starting line in that file>, <another ending line in that file>]
-
-For example, if I wanted to watch the source file for the lines you're currently reading I would use:
-
-.. code-block:: yaml
-
-   ---
-   akellehe:
-       github-watcher: 
-           docs/source/index.rst
-               - [38, 40]
-
-Now if someone submits a pull request against those lines, you'll be notified.
+.. automodule:: github_watcher.commands.config
+   :members:
 
 Configuring Authentication
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -91,47 +65,9 @@ Your token will be listed on the next page. Copy it somewhere safe! This will be
 
 Now that you have your access token, you have to add it to your `~/.github-watcher.yml` file. 
 
-.. code-block:: yaml
-
-   ---
-   github_api_secret_token: '*****'
-   akellehe:
-       github-watcher: 
-           docs/source/index.rst
-               - [38, 40]
-
-You can record your access token in the place you see the asteriks above. After you've completed this step, if you're using the publicly hosted github you're done! If you're using an enterprise build then you'll have to add the api base url to the configuration.
-
-.. code-block:: yaml
-
-   ---
-   github_api_secret_token: '*****'
    github_api_base_url: 'https://github.example.com/api/v3'
-   akellehe:
-       github-watcher: 
-           docs/source/index.rst
-               - [38, 40]
 
-Then you can run it!
 
-Configuring Regular Expression Watching
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you're interested in watching for a string that can be matched to a regular expression across _all_ files in a repository; you can add a block of regular expressions.
-
-.. code-block:: yaml
-
-   ---
-   github_api_secret_token: '*****'
-   github_api_base_url: 'https://github.example.com/api/v3'
-   akellehe:
-       github-watcher: 
-           docs/source/index.rst
-               - [38, 40]
-   watched_regexes:
-       - [fF]oo
-
-Now if any pull request submitted to `github_watcher` contains the string "foo" or "Foo" we will get an alert that links to that file.
 
 Running github_watcher
 ----------------------
@@ -158,8 +94,5 @@ For Developers
 --------------
 
 .. automodule:: github_watcher.commands.run
-   :members:
-
-.. automodule:: github_watcher.commands.config
    :members:
 
