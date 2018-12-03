@@ -19,7 +19,6 @@ import platform
 import unidiff
 
 import github_watcher.settings as settings
-import github_watcher.util as util
 import github_watcher.commands.config as config
 import github_watcher.services.git as git
 
@@ -30,56 +29,52 @@ if SYSTEM == 'Linux' and os.environ.get('TRAVIS') != 'true':
     import notify2
 
 
-def is_watched_file(conf: Dict, user: str, repo: str, hunk_path: str) -> bool:
+def is_watched_file(repo: config.Repo, hunk_path: str) -> config.Path or False:
     """
     Determines whether or not the file at `user/repo/hunk_path` is watched based on the configuration passed as `conf`.
 
-    :param dict conf: The configuration under which to assess the file.
-    :param str user: The owner of the repository, `repo`, in which the file resides.
-    :param str repo: The repo owned by `owner`, in which this file resides.
+    :param :py:class:`config.Repo` repo: The repo owned by `owner`, in which this file resides.
     :param str hunk_path: The relative path to the file to evaluate against `conf` in order to determine whether or not it is watched.
     :return: A boolean value specifying whether or not `hunk_path` is watched under `conf`.
     """
-    paths = conf.get(user, {}).get(repo, [])
-    if not paths:
+    if not repo or not repo.paths:
         return False
-    for path in paths:
-        if hunk_path == path:
-            return True
+    for path in repo.paths:
+        if hunk_path == path.path:
+            return path
     return False
 
 
-def is_watched_directory(conf: Dict, user: str, repo: str, hunk_path: str) -> bool:
+def is_watched_directory(repo: config.Repo, hunk_path: str) -> bool:
     """
     Determines whether or not the file at `user/repo/hunk_path` is watched based on whether or not it lies in a
     directory specified by `conf`
 
-    :param dict conf: The configuration under which to assess the file.
-    :param str user: The owner of the repository, `repo`, in which the file resides.
-    :param str repo: The repo owned by `owner`, in which this file resides.
+    :param :py:class:`config.Repo`: The repo owned by `owner`, in which this file resides.
     :param str hunk_path: The relative path to the file to evaluate against `conf` in order to determine whether or not it is watched.
+
     :return: A boolean value specifying whether or not `hunk_path` is watched under `conf`.
     """
-    paths = conf.get(user, {}).get(repo, [])
-    if not paths:
+    if not repo or not repo.paths:
         return False
-    for path in paths:
-        if path.endswith('/') and hunk_path.startswith(path):
+    for path in repo.paths:
+        if path.path.endswith('/') and hunk_path.startswith(path.path):
             return True
     return False
 
 
-def contains_watched_regex(conf: Dict, blob: str) -> bool:
+def contains_watched_regex(repo: config.Repo, blob: str) -> bool:
     """
     Searches a blob of text for a match to the regexes configured as the `watched_regexes` attribute of `conf`.
 
-    :param dict conf: A github-watcher configuration. If it contains `watched_regexes` we'll check those here.
+    :param :py:class:`config.Repo`: The repo for which `regexes` is configured.
     :param str blob: A blob of text to check for the regex.
+
     :rtype: bool
     :return: True if `blob` contains one of the configured regexes.
     """
     lines = blob.splitlines()
-    for regex in conf.get('watched_regexes', []):
+    for regex in repo.regexes:
         for line in lines:
             if re.search(regex, line):
                 return True
@@ -111,28 +106,21 @@ def alert(file: str, range: Tuple[int, int], pr_link: str, silent=False) -> None
         note.close()
 
 
-def are_watched_lines(watchpaths, filepath, start, end):
-    """
-
-    :param watchpaths:
-    :param filepath:
-    :param start:
-    :param end:
-    :return:
-    """
-    if filepath not in watchpaths:
+def are_watched_lines(path: config.Path, start, end):
+    if not path.ranges:
         return False
     if end < start:
         raise ValueError("Changed line ranges were out of order.")
-    for watched_start, watched_end in watchpaths[filepath]:
-        if start < watched_start and end < watched_start:
+    for watched in path.ranges:
+        if start < watched.start and end < watched.start:
             return False
-        if start > watched_end:
+        if start > watched.end:
             return False
     return True
 
 
-def alert_if_watched_changes(conf, user, repo, patched_file, link, diffstring, source_or_target='source'):
+def alert_if_watched_changes(conf: config.Configuration, user: config.User, repo: config.Repo,
+                             patched_file, link, diffstring, source_or_target='source'):
     filepath = getattr(patched_file, source_or_target + '_file')
     if filepath.startswith('a/') or filepath.startswith('b/'):
         filepath = filepath[2:]
@@ -140,18 +128,19 @@ def alert_if_watched_changes(conf, user, repo, patched_file, link, diffstring, s
     if already_alerted(link):
         return False
 
-    if is_watched_directory(conf, user, repo, filepath) or contains_watched_regex(conf, diffstring):
+    if is_watched_directory(repo, filepath) or contains_watched_regex(repo, diffstring):
         alert(filepath, '', link)
         mark_as_alerted(link)
         return True
 
-    if is_watched_file(conf, user, repo, filepath):
+    path = is_watched_file(repo, filepath)
+    if path:
         for hunk in patched_file:
             start = getattr(hunk, source_or_target + '_start')
             offset = getattr(hunk, source_or_target + '_length')
             end = start + offset
-            if are_watched_lines(conf.get(user, {}).get(repo, {}), filepath, start, end):
-                alert(filepath, (start, end), link, silent=conf.get('silent', False))
+            if are_watched_lines(path, start, end):
+                alert(filepath, (start, end), link, silent=conf.silent)
                 mark_as_alerted(link)
                 return True
     return False
@@ -177,20 +166,16 @@ def already_alerted(pr_link):
 
 
 def find_changes(conf):
-    base_url = conf.get('github_api_base_url')
-    access_token = util.read_access_token(conf)
-    for user, repo_watchpaths in conf.items():
-        if not isinstance(repo_watchpaths, dict):
-            continue  # Not all configs are watchpaths
-        for repo in repo_watchpaths.keys():
-            logging.info("Searching for pull requests in repo %s...", repo)
-            open_prs = [pr for pr in git.open_pull_requests(base_url, access_token, user, repo)]
-            logging.info("Found %s pull requests in %s", len(open_prs), repo)
+    for user in conf.users:
+        for repo in user.repos:
+            logging.info("Searching for pull requests in repo %s...", repo.name)
+            open_prs = [pr for pr in git.open_pull_requests(user.base_url, user.token, user.name, repo.name)]
+            logging.info("Found %s pull requests in %s", len(open_prs), repo.name)
             for open_pr in open_prs:
                 link = open_pr.html_url
                 logging.info("Checking link %s for overlaps in watched files...", link)
                 try:
-                    diffstring = git.diff(base_url, access_token, open_pr)
+                    diffstring = git.diff(user.base_url, user.token, open_pr)
                     patchset = unidiff.PatchSet.from_string(diffstring)
                 except git.Noop:
                     continue
@@ -203,9 +188,9 @@ def find_changes(conf):
                         continue
 
 
-
 def main(parser):
-    conf = config.get_config(parser)
+    conf = config.Configuration.from_file()
+    conf.add_cli_options(parser.parse_args())
     while True:
         logging.info("Finding changes...")
         find_changes(conf)

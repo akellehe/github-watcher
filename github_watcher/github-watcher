@@ -25,28 +25,8 @@ run|config - *run* Runs the daemon. Watches files and alerts when there is a pul
 def parse_cli():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('action', default='run', help=ACTION_HELP)
-    parser.add_argument('--verbose', dest='verbose', action='store_true', default=False)
-    parser.add_argument('--repo', dest='repo', default=None,
-                        help='Used with "github-watcher check" to specify the repository to check. Required for check.')
-    parser.add_argument('--user', dest='user', default=None,
-                        help='Used with "github-watcher check" to specify the user who owns the repostory to check. ' +
-                             'Required for check.')
-    parser.add_argument('--filepath', dest='filepath', default=None,
-                        help='Used with "github-watcher check" to specify the filepath to check. Required for check.')
-    parser.add_argument('--start-lineno', dest='start', default=0,
-                        help='Used with "github-watcher check" to specify the start of the line range to check. ' +
-                             'Optional.')
-    parser.add_argument('--end-lineno', dest='end', default=1000000,
-                        help='Used with "github-watcher check" to speficy the end of the line range to check. ' +
-                             'Optional.')
-    parser.add_argument('--github-url', dest='github_url', default=None,
-                        help='Supply a non-default github url where your enterprise installation can be found. It ' +
-                             'should probably end with /api/v3. Defaults to the api.github.com API')
-    parser.add_argument('--regex', dest='regex', default=None,
-                        help='Pass a regular expression. If a match if found in either a source or a destination ' +
-                             'file you will be alerted regardless of whether or not the file appears in your ' +
-                             'configuration')
-    parser.add_argument('--silent', dest='silent', default=False, help='Don\'t make audio alerts where supported.')
+    parser.add_argument('--verbose', dest='verbose', action='store_true', default=None)
+    parser.add_argument('--silent', dest='silent', default=None, help='Don\'t make audio alerts where supported.')
     return parser, parser.parse_args()
 
 
