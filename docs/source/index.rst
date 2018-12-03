@@ -90,9 +90,9 @@ There are a bunch of other options you can pass. Get a complete listing by passi
 
    github-watcher --help
 
-For Developers
---------------
-
 .. automodule:: github_watcher.commands.run
+   :members:
+
+.. automodule:: github_watcher.commands.config
    :members:
 

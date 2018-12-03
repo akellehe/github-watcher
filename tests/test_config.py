@@ -19,6 +19,7 @@ class TestConfig(unittest.TestCase):
                     'github-watcher': {
                         'paths': {'/': [[0, 100]]},
                         'regexes': [],
+                        'users': []
                     }
                 }
             }
@@ -39,6 +40,7 @@ class TestConfig(unittest.TestCase):
                             '/': [[0, 100]]
                         },
                         'regexes': ['foo', 'bar'],
+                        'users': [],
                     },
                 },
                 'base_url': 'https://github.com',
@@ -64,7 +66,8 @@ class TestConfig(unittest.TestCase):
                         'docs/': [],
                         'github_watcher/settings.py': [[0, 1], [4, 5]]
                     },
-                    'regexes': ['foo', 'bar']
+                    'regexes': ['foo', 'bar'],
+                    'users': []
                 },
             },
             'base_url': 'https://api.gitub.com',
@@ -134,6 +137,7 @@ class TestConfig(unittest.TestCase):
         - - 0
           - 10
       regexes: []
+      users: []
   token: ''
 """)
 
@@ -150,7 +154,8 @@ class TestConfig(unittest.TestCase):
                         'docs/': [],
                         'github_watcher/settings.py': [[0, 1], [4, 5]]
                     },
-                    'regexes': ['foo', 'bar']
+                    'regexes': ['foo', 'bar'],
+                    'users': []
                 },
             }
         }}
@@ -176,6 +181,7 @@ class TestConfig(unittest.TestCase):
       regexes:
       - foo
       - bar
+      users: []
   token: '*****'
 username:
   base_url: my base url
@@ -186,6 +192,7 @@ username:
         - - 0
           - 10
       regexes: []
+      users: []
   token: ''
 """
         with open(tmpfile.name, 'rb') as fp:
@@ -264,12 +271,14 @@ username:
                         'docs/': [],
                         'github_watcher/settings.py': [[0, 1], [4, 5]]
                     },
-                    'regexes': ['foo', 'bar']
+                    'regexes': ['foo', 'bar'],
+                    'users': []
                 },
                 'github_watcher_2': {
                     'paths': {'docs/': [],
                               'github_watcher/settings.py': [[0, 1], [4, 5]]},
-                    'regexes': ['foo', 'bar']
+                    'regexes': ['foo', 'bar'],
+                    'users': []
                 }
             },
             'base_url': 'https://api.gitub.com',

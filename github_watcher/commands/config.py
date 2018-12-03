@@ -20,6 +20,8 @@ For the sake of brevity, a complete example configuration is
                 regexes:
                     - foo
                     - bar
+                users:
+                    - akellehe
 
 If the configuration above doesn't answer your questions, more explanation is below.
 
@@ -43,6 +45,10 @@ The parameters in a repository are
 +-----------+-----------+----------------------------------------------------------------------------------------------+
 | base_url  | str       | The base URL for the target github API. Defaults to https://api.gitub.com                    |
 +-----------+-----------+----------------------------------------------------------------------------------------------+
+| users     | List[str] | A list of users. You'll receive an alert any time one of them submits a PR                   |
++-----------+-----------+----------------------------------------------------------------------------------------------+
+
+Particular classes related to the grammar in configuration files follow.
 
 """
 
@@ -54,6 +60,12 @@ import github_watcher.settings as settings
 
 
 class Range:
+    """
+    Represents a line range being watched.
+        
+    :param float start: Defaults to -inf. Starting point in the line range on the file to watch.
+    :param float end: Defaults to inf. Ending point in the line range on the file to watch.
+    """
 
     def __init__(self, start: float=float('-inf'), end: float=float('inf')):
         self.start = start
@@ -64,6 +76,12 @@ class Range:
 
 
 class Path:
+    """
+    :param str path: Represents a path to watch. Container for line ranges in that path. This can be a file or a
+    directory
+    :param List[Range] ranges: A list of line ranges to watch at `path`. This can be an empty list if there are no
+    ranges.
+    """
 
     def __init__(self, path: str, ranges: List[Range]):
         self.path = path
@@ -76,15 +94,24 @@ class Path:
 
 
 class Repo:
+    """
+    :param str name: The name of the repository being watched.
+    :param List[Path] paths: A list of path configurations to watch in the repository.
+    :param List[str] regexes: A list of strings, regular expressions to search in the pull request diffs.
+    :param List[str] users: A list of authors to watch. If any submit any PR it will be alerted.
+    """
 
-    def __init__(self, name: str, paths: List[Path]=None, regexes: List[str]=None):
+    def __init__(self, name: str, paths: List[Path]=None, regexes: List[str]=None, users: List[str]=None):
         self.name = name
         self.paths = paths
         self.regexes = regexes
+        self.users = users
         if paths is None:
             self.paths = []
         if regexes is None:
             self.regexes = []
+        if users is None:
+            self.users = []
 
     def to_json(self):
         paths = {}
@@ -94,6 +121,7 @@ class Repo:
             self.name: {
                 'paths': paths,
                 'regexes': [r for r in self.regexes] if self.regexes else [],
+                'users': [u for u in self.users] if self.users else [],
             }
         }
 
@@ -108,11 +136,18 @@ class Repo:
         return Repo(
             name=name,
             paths=paths,
+            users=yml.get('users'),
             regexes=yml.get('regexes')
         )
 
 
 class User:
+    """
+    :param str name: The user's username in github.
+    :param List[Repo] repos: A list of repository configurations for the repositories that will be watched.
+    :param str token: The authentication token giving User and Repo grants on the target repositories.
+    :param str base_url: The API base url on which this user exists (enterprise github is supported)
+    """
 
     def __init__(self, name: str, repos: List[Repo], token: str, base_url: str):
         self.name = name
@@ -143,6 +178,11 @@ class User:
 
 
 class Configuration:
+    """
+    :param List[User] users: A list of users with repository configurations to watch.
+    :param bool silent: Silent audio alerts. This is a commandline options, --silent.
+    :param bool verbose: Verbose logging (warning: prints access tokens). This is a commandline arg, --verbose.
+    """
 
     def __init__(self, users: List[User], silent: bool=False, verbose: bool=False):
         self.users = users
