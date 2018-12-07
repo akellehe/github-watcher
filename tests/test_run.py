@@ -347,10 +347,11 @@ class TestRun(unittest.TestCase):
         with mock.patch('github_watcher.settings.WATCHER_ALERT_LOG', tmpfile.name):
             self.assertTrue(run.already_alerted('my pr link'))
 
-    @mock.patch('github_watcher.commands.run.open')
-    def test_already_alerted_with_ioerror(self, _open):
-        _open.side_effect = IOError
-        self.assertFalse((run.already_alerted('my pr link')))
+    def test_already_alerted_with_ioerror(self):
+        _open = mock.MagicMock()
+        with mock.patch.dict('github_watcher.commands.run.__builtins__', values={'open': _open}):
+            _open.side_effect = IOError
+            self.assertFalse((run.already_alerted('my pr link')))
 
     @mock.patch('github_watcher.commands.run.alert_if_watched_changes')
     @mock.patch('github_watcher.services.git.diff')

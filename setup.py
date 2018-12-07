@@ -21,10 +21,11 @@ except ImportError:
     from setuptools import setup, find_packages
 
 dependencies = [
-    'unidiff==0.5.4',
-    'requests==2.20.0',
     'PyYAML==3.13',
     'PyGithub==1.43',
+    'requests==2.20.0',
+    'typing==3.6.6',
+    'unidiff==0.5.4',
 ]
 
 SYSTEM = platform.system()

@@ -79,56 +79,62 @@ class TestConfig(unittest.TestCase):
             conf = config.Configuration.from_file(tmpfile.name)
             self.assertEqual(expected, conf.to_json())
 
-    @mock.patch('github_watcher.commands.config.input')
-    def test_get_line_range(self, _input):
-        _input.return_value = 1
-        line_range = config.get_line_range()
-        self.assertEqual(line_range, [1, 1])
-        _input.assert_any_call("What is the beginning of the line range you would like to watch in that file?\n(0) >> ")
-        _input.assert_any_call("What is the end of the line range you would like to watch in that file?\n(infinity) >> ")
+    def test_get_line_range(self):
+        _input = mock.MagicMock()
+        with mock.patch.dict('github_watcher.commands.config.__builtins__',
+                             values={'input': _input}):
+            _input.return_value = 1
+            line_range = config.get_line_range()
+            self.assertEqual(line_range, [1, 1])
+            print('calls', _input.call_args_list)
+            _input.assert_any_call("What is the beginning of the line range you would like to watch in that file?\n(0) >> ")
+            _input.assert_any_call("What is the end of the line range you would like to watch in that file?\n(infinity) >> ")
 
-    @mock.patch('github_watcher.commands.config.input')
-    def test_should_end(self, _input):
-        _input.return_value = 'y'
-        self.assertFalse(config.should_end())
-        _input.assert_any_call("Would you like to add another line range (y/n)?\n>> ")
+    def test_should_end(self):
+        _input = mock.MagicMock()
+        with mock.patch.dict('github_watcher.commands.config.__builtins__', values={'input': _input}):
+            _input.return_value = 'y'
+            self.assertFalse(config.should_end())
+            _input.assert_any_call("Would you like to add another line range (y/n)?\n>> ")
 
-    @mock.patch('github_watcher.commands.config.input')
-    def test_get_project_metadata(self, _input):
-        _input.side_effect = ['username', 'project', 'filepath']
-        username, project, filepath = config.get_project_metadata()
-        self.assertEqual(username, 'username')
-        self.assertEqual(project, 'project')
-        self.assertEqual(filepath, 'filepath')
-        _input.assert_any_call("What github username or company owns the project you would like to watch?\n>> ")
-        _input.assert_any_call("What is the project name you would like to watch?\n>> ")
-        _input.assert_any_call("What is the file path you would like to watch (directories must end with /)?\n>> ")
+    def test_get_project_metadata(self):
+        _input = mock.MagicMock()
+        with mock.patch.dict('github_watcher.commands.config.__builtins__', values={'input': _input}):
+            _input.side_effect = ['username', 'project', 'filepath']
+            username, project, filepath = config.get_project_metadata()
+            self.assertEqual(username, 'username')
+            self.assertEqual(project, 'project')
+            self.assertEqual(filepath, 'filepath')
+            _input.assert_any_call("What github username or company owns the project you would like to watch?\n>> ")
+            _input.assert_any_call("What is the project name you would like to watch?\n>> ")
+            _input.assert_any_call("What is the file path you would like to watch (directories must end with /)?\n>> ")
 
-        _input.side_effect = ['username', 'project', '/filepath', Exception('foobar')]
-        with self.assertRaisesRegex(Exception, 'foobar'):
-            config.get_project_metadata()
-        _input.assert_any_call("What github username or company owns the project you would like to watch?\n>> ")
-        _input.assert_any_call("What is the project name you would like to watch?\n>> ")
-        _input.assert_any_call("What is the file path you would like to watch (directories must end with /)?\n>> ")
-        _input.assert_any_call("No absolute file paths. Try again.\n>> ")
+            _input.side_effect = ['username', 'project', '/filepath', Exception('foobar')]
+            with self.assertRaisesRegex(Exception, 'foobar'):
+                config.get_project_metadata()
+            _input.assert_any_call("What github username or company owns the project you would like to watch?\n>> ")
+            _input.assert_any_call("What is the project name you would like to watch?\n>> ")
+            _input.assert_any_call("What is the file path you would like to watch (directories must end with /)?\n>> ")
+            _input.assert_any_call("No absolute file paths. Try again.\n>> ")
 
     @mock.patch('github_watcher.commands.config.should_end')
-    @mock.patch('github_watcher.commands.config.input')
-    @mock.patch('github_watcher.commands.config.print')
-    def test_main(self, _print, _input, should_end):
-        _input.side_effect = ['username', 'project', 'filepath', 0, 10, 'my base url', 'q', 'y']
-        should_end.return_value = True
-        args = mock.MagicMock()
-        args.silent = True
-        args.verbose = False
-        parser = mock.MagicMock()
-        parser.parse_args.return_value = args
-        tmpfile = tempfile.NamedTemporaryFile()
-        tmpfile.write(bytes('', 'utf8'))
-        tmpfile.flush()
-        with mock.patch('github_watcher.settings.WATCHER_CONFIG', tmpfile.name):
-            c = config.main(parser)
-        _print.assert_any_call("""username:
+    def test_main(self, should_end):
+        _input, _print = mock.MagicMock(), mock.MagicMock()
+        with mock.patch.dict('github_watcher.commands.config.__builtins__', values={'input': _input}):
+            with mock.patch.dict('github_watcher.commands.config.__builtins__', values={'print': _print}):
+                _input.side_effect = ['username', 'project', 'filepath', 0, 10, 'my base url', 'q', 'y']
+                should_end.return_value = True
+                args = mock.MagicMock()
+                args.silent = True
+                args.verbose = False
+                parser = mock.MagicMock()
+                parser.parse_args.return_value = args
+                tmpfile = tempfile.NamedTemporaryFile()
+                tmpfile.write(bytes('', 'utf8'))
+                tmpfile.flush()
+                with mock.patch('github_watcher.settings.WATCHER_CONFIG', tmpfile.name):
+                    c = config.main(parser)
+                _print.assert_any_call("""username:
   base_url: my base url
   repos:
     project:
@@ -142,8 +148,7 @@ class TestConfig(unittest.TestCase):
 """)
 
     @mock.patch('github_watcher.commands.config.should_end')
-    @mock.patch('github_watcher.commands.config.input')
-    def test_main_with_write_new_user_config(self, _input, should_end):
+    def test_main_with_write_new_user_config(self, should_end):
         should_end.return_value = True
         expected = {'akellehe': {
             'base_url': 'https://api.gitub.com',
@@ -162,10 +167,11 @@ class TestConfig(unittest.TestCase):
         tmpfile = tempfile.NamedTemporaryFile()
         tmpfile.write(bytes(yaml.dump(expected), 'utf8'))
         tmpfile.flush()
-        with mock.patch('github_watcher.settings.WATCHER_CONFIG', tmpfile.name):
-            with mock.patch('github_watcher.commands.config.input') as inp:
-                with mock.patch('github_watcher.commands.config.print') as _print:
-                    inp.side_effect = ['username', 'project', 'filepath', 0, 10, 'my base url', 'q', 'y']
+        _input = mock.MagicMock()
+        with mock.patch.dict('github_watcher.commands.config.__builtins__', values={'input': _input}):
+            with mock.patch('github_watcher.settings.WATCHER_CONFIG', tmpfile.name):
+                with mock.patch.dict('github_watcher.commands.config.__builtins__', values={'print': mock.MagicMock()}) as _print:
+                    _input.side_effect = ['username', 'project', 'filepath', 0, 10, 'my base url', 'q', 'y']
                     config.main(None)
         expected = """akellehe:
   base_url: https://api.gitub.com
@@ -199,31 +205,34 @@ username:
             self.assertEqual(fp.read().decode('utf8'), expected)
 
     @mock.patch('github_watcher.commands.config.should_end')
-    @mock.patch('github_watcher.commands.config.input')
-    def test_main_with_runtime_error(self, _input, should_end):
-        _input.side_effect = ['username', 'project', 'filepath', 0, 10, 'my base url', 'q', 'y']
-        should_end.return_value = True
-
-        tmpfile = tempfile.NamedTemporaryFile()
-        tmpfile.write(bytes('', 'utf8'))
-        tmpfile.flush()
-        with mock.patch('github_watcher.settings.WATCHER_CONFIG', tmpfile.name):
-            with mock.patch('github_watcher.commands.config.input') as inp:
-                inp.return_value = ''
-                config.main(None)
+    def test_main_with_runtime_error(self, should_end):
+        _input = mock.MagicMock()
+        with mock.patch.dict('github_watcher.commands.config.__builtins__', values={'input': _input}):
+            _input.side_effect = ['username', 'project', 'filepath', 0, 10, 'my base url', 'q', 'y']
+            should_end.return_value = True
+            tmpfile = tempfile.NamedTemporaryFile()
+            tmpfile.write(bytes('', 'utf8'))
+            tmpfile.flush()
+            with mock.patch('github_watcher.settings.WATCHER_CONFIG', tmpfile.name):
+                with mock.patch.dict('github_watcher.commands.config.__builtins__', values={'input': _input}):
+                    _input.reset_mock()
+                    _input.return_value = ''
+                    config.main(None)
 
     def test_get_api_base_url(self):
         conf = config.Configuration(users=[config.User(name='akellehe', repos=[], token='', base_url='foobar')])
         base_url = config.get_api_base_url('akellehe', conf)
         self.assertEqual(base_url, 'foobar')
 
-        with mock.patch('github_watcher.commands.config.input') as _input:
+        _input = mock.MagicMock()
+        with mock.patch.dict('github_watcher.commands.config.__builtins__', values={'input': _input}):
             conf = config.Configuration(users=[])
             _input.return_value = 'second base url'
             base_url = config.get_api_base_url('akellehe', conf)
             self.assertEqual(base_url, 'second base url')
 
-        with mock.patch('github_watcher.commands.config.input') as _input:
+        _input = mock.MagicMock()
+        with mock.patch.dict('github_watcher.commands.config.__builtins__', values={'input': _input}):
             conf = config.Configuration(users=[])
             _input.return_value = None
             base_url = config.get_api_base_url('akellehe', conf)
