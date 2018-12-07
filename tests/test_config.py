@@ -251,17 +251,29 @@ username:
         }}
         target = config.Configuration.from_json(conf)
 
+        repos_by_name = {}
+        for repo in target.users[0].repos:
+            repos_by_name[repo.name] = repo
+
         self.assertEqual(len(target.users), 1)
         self.assertEqual(target.users[0].name, 'akellehe')
-        self.assertEqual(target.users[0].repos[0].name, 'github_watcher')
-        self.assertEqual(target.users[0].repos[1].name, 'github_watcher_2')
-        self.assertEqual(target.users[0].repos[1].paths[0].path, 'docs/')
-        self.assertEqual(target.users[0].repos[1].paths[0].ranges, [])
-        self.assertEqual(target.users[0].repos[1].paths[1].path, 'github_watcher/settings.py')
-        self.assertEqual(target.users[0].repos[1].paths[1].ranges[0].start, 0)
-        self.assertEqual(target.users[0].repos[1].paths[1].ranges[0].end, 1)
-        self.assertEqual(target.users[0].repos[1].paths[1].ranges[1].start, 4)
-        self.assertEqual(target.users[0].repos[1].paths[1].ranges[1].end, 5)
+
+        github_watcher_repo = repos_by_name.get('github_watcher')
+        github_watcher_2_repo = repos_by_name.get('github_watcher_2')
+        paths_by_name = {}
+        for path in github_watcher_2_repo.paths:
+            paths_by_name[path.path] = path
+
+        self.assertEqual(github_watcher_repo.name, 'github_watcher')
+        self.assertEqual(github_watcher_2_repo.name, 'github_watcher_2')
+        self.assertEqual(paths_by_name.get('docs/').path, 'docs/')
+        self.assertEqual(paths_by_name.get('docs/').ranges, [])
+        p = paths_by_name.get('github_watcher/settings.py')
+        self.assertEqual(p.path, 'github_watcher/settings.py')
+        self.assertEqual(p.ranges[0].start, 0)
+        self.assertEqual(p.ranges[0].end, 1)
+        self.assertEqual(p.ranges[1].start, 4)
+        self.assertEqual(p.ranges[1].end, 5)
 
     def test_configuration_to_from_json(self):
         conf = {'akellehe': {
