@@ -25,7 +25,7 @@ For the sake of brevity, a complete example configuration is
 
 If the configuration above doesn't answer your questions, more explanation is below.
 
-Configurations are defined _per user_ (account) being watched. The :py:class:`github_watcher.commands.config.User` is
+Configurations are defined `per user` (account) being watched. The :py:class:`github_watcher.commands.config.User` is
 the "top-level" configuration. Each user can have many repositories.
 
 The parameters in a repository are
@@ -77,10 +77,8 @@ class Range:
 
 class Path:
     """
-    :param str path: Represents a path to watch. Container for line ranges in that path. This can be a file or a
-    directory
-    :param List[Range] ranges: A list of line ranges to watch at `path`. This can be an empty list if there are no
-    ranges.
+    :param str path: Represents a path to watch. Container for line ranges in that path. This can be a file or a directory
+    :param List[Range] ranges: A list of line ranges to watch at `path`. This can be an empty list if there are no ranges.
     """
 
     def __init__(self, path: str, ranges: List[Range]):
