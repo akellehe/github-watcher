@@ -10,8 +10,8 @@ You can find more info on the github page. https://github.com/akellehe/github-wa
 
 
 import sys
-if sys.version_info[0] < 3:
-    raise Exception("This package only supports Python3+")
+if sys.version_info[0] < 3 or sys.version_info[1] < 3:
+    raise Exception("This package only supports Python3.3+")
 
 import platform
 import os
@@ -37,7 +37,7 @@ elif SYSTEM == 'Linux' and not os.environ.get('TRAVIS'):
 
 
 setup(name='github_watcher',
-        version='4.2',
+        version='5.2',
         description='Monitors files/directories on github and alerts you when someone submits a PR with changes',
         long_description=long_description,
         author='Andrew Kelleher',
