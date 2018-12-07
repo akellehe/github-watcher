@@ -230,6 +230,7 @@ class Configuration:
 
     @classmethod
     def from_json(cls, yml):
+        print('yml', yml)
         if not yml:
             raise RuntimeError("No configuration found.")
         return Configuration(

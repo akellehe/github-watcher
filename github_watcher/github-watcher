@@ -3,7 +3,6 @@ import sys
 import time
 import logging
 import argparse
-import os.path
 
 import github_watcher
 import github_watcher.settings
@@ -11,6 +10,7 @@ import github_watcher.commands
 import github_watcher.commands.run
 import github_watcher.commands.check
 import github_watcher.commands.config
+import github_watcher.commands.clean
 
 
 THROTTLE_THRESHOLD = 600  # seconds
@@ -27,6 +27,20 @@ def parse_cli():
     parser.add_argument('action', default='run', help=ACTION_HELP)
     parser.add_argument('--verbose', dest='verbose', action='store_true', default=None)
     parser.add_argument('--silent', dest='silent', default=None, help='Don\'t make audio alerts where supported.')
+
+    # Sanitization methods.
+    parser.add_argument('--dry-run', dest='dry_run', action='store_true', default=True,
+                        help='Prints what it would do, instead of modifying stuff on github.')
+    parser.add_argument('--older-than', dest='older_than', default=None, help='Pass a date in YYYY-MM-DD format. All ' +
+                        'pull requests built on branches last updated earlier than this date will be closed. The ' +
+                        'associated branches will be deleted.')
+    parser.add_argument('--comment', dest='comment', default=None,
+                        help='Comment on pull requests matching the criteria defined. Pass the message here.')
+    parser.add_argument('--close', dest='close', default=False, action='store_true',
+                        help='Close pull requests matching the criteria defined.')
+    parser.add_argument('--delete', dest='delete', default=False, action='store_true',
+                        help='Delete pull requests and branches matching the criteria defined.')
+
     return parser, parser.parse_args()
 
 
@@ -60,6 +74,9 @@ def main():
         github_watcher.commands.config.main(parser)
     elif args.action == 'check':
         github_watcher.commands.check.main(parser)
+    elif args.action == 'clean':
+        logging.info('Cleaning...')
+        github_watcher.commands.clean.main(parser)
     else:
         parser.print_help()
         raise SystemExit
