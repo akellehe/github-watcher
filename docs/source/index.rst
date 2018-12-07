@@ -96,3 +96,6 @@ There are a bunch of other options you can pass. Get a complete listing by passi
 .. automodule:: github_watcher.commands.config
    :members:
 
+.. automodule:: github_watcher.commands.clean
+   :members:
+
