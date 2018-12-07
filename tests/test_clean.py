@@ -190,7 +190,7 @@ class TestClean(unittest.TestCase):
         with mock.patch('github_watcher.commands.clean.config.Configuration.from_file') as ff:
             ff.return_value = conf
             clean.main(parser)
-        clean_branch.assert_called()
+        assert clean_branch.called
         clean_pr.assert_not_called()
 
     @mock.patch('github_watcher.commands.clean.clean_pull_request')

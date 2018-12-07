@@ -458,17 +458,17 @@ class TestRun(unittest.TestCase):
         git_diff.assert_any_call('my base url', '*****', open_prs[0])
         alert_if_watched_changes.assert_not_called()
 
-    @mock.patch('github_watcher.commands.run.config.Configuration.from_file')
     @mock.patch('github_watcher.commands.run.find_changes')
-    def test_main(self, find_changes, configuration_from_file):
+    def test_main(self, find_changes):
         conf = mock.MagicMock()
-        configuration_from_file.return_value = conf
         parser = mock.MagicMock()
-        with mock.patch('time.sleep') as time_sleep:
-            time_sleep.side_effect = StopIteration
-            with self.assertRaisesRegex(StopIteration, ''):
-                run.main(parser)
-        configuration_from_file.assert_called_once()
-        conf.add_cli_options.assert_called_once()
+        with mock.patch('github_watcher.commands.run.config.Configuration.from_file') as configuration_from_file:
+            configuration_from_file.return_value = conf
+            with mock.patch('time.sleep') as time_sleep:
+                time_sleep.side_effect = StopIteration
+                with self.assertRaisesRegex(StopIteration, ''):
+                    run.main(parser)
+            assert configuration_from_file.called
+            assert conf.add_cli_options.called
         find_changes.assert_any_call(conf)
         time_sleep.assert_any_call(600)
