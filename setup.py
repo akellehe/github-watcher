@@ -21,7 +21,7 @@ except ImportError:
     from setuptools import setup, find_packages
 
 dependencies = [
-    'PyYAML==3.13',
+    'PyYAML==5.1',
     'PyGithub==1.43',
     'requests==2.20.0',
     'typing==3.6.6',
